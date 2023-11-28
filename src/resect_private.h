@@ -167,6 +167,14 @@ void *resect_context_pop_state(resect_translation_context context);
 
 void resect_register_garbage(resect_translation_context context, enum P_resect_garbage_kind kind, void *garbage);
 
+resect_bool resect_context_is_max_context_depth_exceeded(resect_translation_context context);
+
+size_t resect_context_get_context_depth(resect_translation_context context);
+
+size_t resect_context_inc_context_depth(resect_translation_context context);
+
+size_t resect_context_dec_context_depth(resect_translation_context context);
+
 /*
  * TYPE
  */

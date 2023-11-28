@@ -5,6 +5,8 @@
 #include <string.h>
 #include <assert.h>
 
+#define RESECT_CONTEXT_MAX_DEPTH 5
+
 /*
  * TRANSLATION CONTEXT
  */
@@ -17,6 +19,7 @@ struct P_resect_translation_context {
 
     resect_collection state_stack;
     resect_collection garbage;
+    size_t context_depth;
 };
 
 struct P_resect_garbage {
@@ -36,6 +39,7 @@ resect_translation_context resect_context_create(resect_parse_options opts) {
     context->state_stack = resect_collection_create();
 
     context->garbage = resect_collection_create();
+    context->context_depth = 0;
 
     return context;
 }
@@ -170,9 +174,17 @@ enum CXChildVisitResult resect_visit_context_child(CXCursor cursor,
                                                    CXCursor parent,
                                                    CXClientData data) {
     resect_translation_context context = data;
-    resect_visit_child_declaration(cursor, parent, context);
-    resect_context_flush_template_parameters(context);
-    return CXChildVisit_Continue;
+    if(resect_context_is_max_context_depth_exceeded(context)) {
+        printf("XXX resect_visit_context_child -- context depth > %zd, NOT recursing! \n",
+               resect_context_get_context_depth(context));
+        return CXChildVisit_Break;
+    } else {
+        resect_context_inc_context_depth(context);
+        resect_visit_child_declaration(cursor, parent, context);
+        resect_context_dec_context_depth(context);
+        resect_context_flush_template_parameters(context);
+        return CXChildVisit_Continue;
+    }
 }
 
 void *resect_context_current_state(resect_translation_context context) {
@@ -187,6 +199,24 @@ void *resect_context_pop_state(resect_translation_context context) {
     return resect_collection_pop_last(context->state_stack);
 }
 
+resect_bool resect_context_is_max_context_depth_exceeded(resect_translation_context context) {
+    return context->context_depth > RESECT_CONTEXT_MAX_DEPTH;
+}
+
+size_t resect_context_get_context_depth(resect_translation_context context) {
+    return context->context_depth;
+}
+
+size_t resect_context_inc_context_depth(resect_translation_context context) {
+    context->context_depth++;
+    return context->context_depth;
+}
+
+size_t resect_context_dec_context_depth(resect_translation_context context) {
+    context->context_depth--;
+    return context->context_depth;
+}
+
 void resect_register_garbage(resect_translation_context context, enum P_resect_garbage_kind kind, void *garbage) {
     struct P_resect_garbage *garbage_holder = malloc(sizeof(struct P_resect_garbage));
 
@@ -195,3 +225,4 @@ void resect_register_garbage(resect_translation_context context, enum P_resect_g
 
     resect_collection_add(context->garbage, garbage_holder);
 }
+

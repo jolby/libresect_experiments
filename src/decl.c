@@ -790,8 +790,15 @@ enum CXChildVisitResult resect_visit_child_declaration(CXCursor cursor,
                                                        CXCursor parent,
                                                        CXClientData data) {
     resect_translation_context context = data;
-    resect_decl_create(context, cursor);
-    return CXChildVisit_Continue;
+    if(resect_context_is_max_context_depth_exceeded(context)) {
+        printf("XXX resect_visit_child_declaration -- context depth > %zd, NOT recursing! \n", resect_context_get_context_depth(context));
+        return CXChildVisit_Break;
+    } else {
+        resect_context_inc_context_depth(context);
+        resect_decl_create(context, cursor);
+        resect_context_dec_context_depth(context);
+        return CXChildVisit_Continue;
+    }
 }
 
 static resect_decl find_registered_decl(resect_translation_context context, CXCursor cursor) {
@@ -816,7 +823,11 @@ resect_decl_result resect_decl_create(resect_translation_context context, CXCurs
         || cursor_kind >= CXCursor_FirstExpr // ignore expressions
            && cursor_kind <= CXCursor_LastExpr) {
         /* ignore some kinds for now, but just in case check children */
-        clang_visitChildren(cursor, resect_visit_child_declaration, context);
+        if(resect_context_is_max_context_depth_exceeded(context)) {
+            printf("XXX resect_decl_create -- context depth > %zd, NOT recursing! \n", resect_context_get_context_depth(context));
+        } else {
+            clang_visitChildren(cursor, resect_visit_child_declaration, context);
+        }
         return result;
     }
 
@@ -837,9 +848,14 @@ resect_decl_result resect_decl_create(resect_translation_context context, CXCurs
         case CXCursor_NonTypeTemplateParameter: {
             CXCursor parent = clang_getCursorSemanticParent(cursor);
             if (clang_getCursorKind(parent) == CXCursor_TranslationUnit) {
-                /* the hell is that even, but that happens, lets check children though */
-                clang_visitChildren(cursor, resect_visit_child_declaration, context);
-                return result;
+                if(resect_context_is_max_context_depth_exceeded(context)) {
+                    printf("XXX resect_decl_create -- context depth > %zd, NOT recursing! \n", resect_context_get_context_depth(context));
+                    return result;
+                } else {
+                    /* the hell is that even, but that happens, lets check children though */
+                    clang_visitChildren(cursor, resect_visit_child_declaration, context);
+                    return result;
+                }
             }
         }
     }
@@ -850,8 +866,18 @@ resect_decl_result resect_decl_create(resect_translation_context context, CXCurs
         case CXCursor_MacroExpansion:
         case CXCursor_InclusionDirective:
             /* we might encounter exposed declarations within unexposed one, e.g. inside extern "C"/"C++" block */
+            if(resect_context_is_max_context_depth_exceeded(context)) {
+                printf("XXX resect_decl_create -- context depth > %zd, NOT recursing! \n", resect_context_get_context_depth(context));
+                return result;
+            } else {
+                /* the hell is that even, but that happens, lets check children though */
+                clang_visitChildren(cursor, resect_visit_child_declaration, context);
+                return result;
+            }
+            /*
             clang_visitChildren(cursor, resect_visit_child_declaration, context);
             return result;
+            */
     }
 
     resect_decl_kind kind = convert_cursor_kind(cursor);

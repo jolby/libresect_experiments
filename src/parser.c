@@ -48,6 +48,7 @@ resect_parse_options resect_options_create() {
     resect_collection_add(opts->args, resect_string_from_c("-ferror-limit=0"));
     resect_collection_add(opts->args, resect_string_from_c("-fno-implicit-templates"));
     resect_collection_add(opts->args, resect_string_from_c("-fc++-abi=itanium"));
+    resect_collection_add(opts->args, resect_string_from_c("-Wno-nonnull"));
 
     return opts;
 }
@@ -223,6 +224,7 @@ resect_translation_unit resect_parse(const char *filename, resect_parse_options 
         while (resect_iterator_next(arg_iter)) {
             resect_string arg = resect_iterator_value(arg_iter);
             clang_argv[i++] = (char *) resect_string_to_c(arg);
+            printf("CLANG ARG: %s\n", (char *) resect_string_to_c(arg));
         }
         resect_iterator_free(arg_iter);
     } else {

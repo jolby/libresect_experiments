@@ -2,8 +2,8 @@
 // Created by borodust on 12/27/19.
 //
 #include "../resect.h"
+// #include <stddef.h>
 #include <stdio.h>
-
 
 void print_record_fields(resect_collection fields) {
     resect_iterator field_iter = resect_collection_iterator(fields);
@@ -82,16 +82,20 @@ void print_location(resect_decl decl) {
 }
 
 int main(int argc, char **argv) {
-    char *filename = argc > 1 ? argv[1] : "/usr/include/stdlib.h";
+    // char *filename = argc > 1 ? argv[1] : "/usr/include/stdlib.h";
+    char *filename = argc > 1 ? argv[1] : "llvm/libcxx/include/stdlib.h";
 
     resect_parse_options options = resect_options_create();
     resect_options_add_language(options, "c++");
 
+    // resect_options_add_include_path(options, "/usr/lib/gcc/x86_64-linux-gnu/11/include/");
+    resect_options_add_include_path(options, "llvm/libcxx/include/");
     resect_options_add_include_path(options, "/usr/local/include/");
     resect_options_add_include_path(options, "/usr/include/");
     resect_options_add_include_path(options, "/usr/include/linux/");
 
     resect_options_add_target(options, "x86_64-pc-linux-gnu");
+    // resect_options_add_target(options, "x86_64-linux-gnu");
     resect_options_print_diagnostics(options);
 
     resect_translation_unit context = resect_parse(filename, options);
