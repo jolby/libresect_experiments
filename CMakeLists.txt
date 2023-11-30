@@ -6,6 +6,10 @@ set(LIBCLANG_INCLUDE_DIRS "${LIBCLANG_DIR}/include/")
 set(LIBCLANG_LINK_DIRS "${LIBCLANG_DIR}/lib/")
 set(THIRD_PARTY_DIR "${CMAKE_CURRENT_SOURCE_DIR}/third-party/")
 
+# CMAKE_BUILD_TYPE was not set, default to Debug.
+if (NOT CMAKE_BUILD_TYPE)
+    set(CMAKE_BUILD_TYPE Debug)
+endif()
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 #
 # PCRE

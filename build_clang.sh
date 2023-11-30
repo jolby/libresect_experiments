@@ -19,7 +19,8 @@ if [[ -z "$BUILD_THREAD_COUNT" ]]; then
 fi
 
 if [[ -z "$BUILD_TYPE" ]]; then
-    BUILD_TYPE="MinSizeRel"
+    BUILD_TYPE="Debug"
+    # BUILD_TYPE="MinSizeRel"
 fi
 
 mkdir -p $BUILD_DIR && cd $BUILD_DIR
