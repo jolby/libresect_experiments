@@ -1,0 +1,15 @@
+#+title: Notes
+* Changes
+- llvm add #include <cstdint>
+    to llvm/llvm/include/Support/Signals.h
+    to allow build w/gcc 13
+    https://lore.kernel.org/buildroot/87y1l7sjxn.fsf@dell.be.48ers.dk/T/
+- Make CMAKE_BUILD_TYPE Debug, verbose Makefile
+* Bugs
+- https://github.com/llvm/llvm-project/commit/48fb6659610a3177e8606681046dfa0d19f67203
+  const: Assertion `!isValueDependent() && "Expression evaluator can't be called on a dependent expression."'
+  triggered in /usr/include/c++/v1/string
+  ?? is assert only triggered in debug build??
+* Debugging
+- gdb print examples
+   p (*(struct P_resect_translation_context *) context)->exposed_decls->head->hh->tbl->num_items
