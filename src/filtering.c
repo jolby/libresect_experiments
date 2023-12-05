@@ -48,6 +48,7 @@ static resect_collection compile_pattern_collection(resect_collection collection
             assert(!"Failed to parse inclusion/exclusion pattern");
         }
 
+        fprintf(stderr, "XXX Success--  Compiled pattern: %s\n", resect_string_to_c(pattern));
         resect_collection_add(result, compiled);
     }
     resect_iterator_free(iter);
@@ -152,13 +153,26 @@ static bool match_pattern_collection(resect_collection collection, const char *s
 resect_inclusion_status resect_filtering_explicit_inclusion_status(resect_filtering_context context,
                                                                    const char *declaration_name,
                                                                    const char *declaration_source) {
+    /* fprintf(stderr, "XXX Checking inclusion status for %s (%s)\n", declaration_name, declaration_source); */
     if (match_pattern_collection(context->enforced_definition_patterns, declaration_name)
         || match_pattern_collection(context->enforced_source_patterns, declaration_source)) {
+        if (match_pattern_collection(context->enforced_definition_patterns, declaration_name)) {
+            /* fprintf(stdout, "XXX ENFORCING because name: %s\n", declaration_name); */
+        }
+        if (match_pattern_collection(context->enforced_source_patterns, declaration_source)) {
+            fprintf(stdout, "XXX ENFORCING because source: %s\n", declaration_source);
+        }
         return RESECT_INCLUSION_STATUS_INCLUDED;
     }
 
     if (match_pattern_collection(context->excluded_definition_patterns, declaration_name)
         || match_pattern_collection(context->excluded_source_patterns, declaration_source)) {
+        if (match_pattern_collection(context->excluded_definition_patterns, declaration_name)) {
+            fprintf(stdout, "XXX Excluding because name: %s\n", declaration_name);
+        }
+        if (match_pattern_collection(context->excluded_source_patterns, declaration_source)) {
+            fprintf(stdout, "XXX Excluding because source: %s\n", declaration_source);
+        }
         return RESECT_INCLUSION_STATUS_EXCLUDED;
     }
 

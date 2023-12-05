@@ -84,17 +84,47 @@ void print_location(resect_decl decl) {
 int main(int argc, char **argv) {
     // char *filename = argc > 1 ? argv[1] : "/usr/include/stdlib.h";
     char *filename = argc > 1 ? argv[1] : "llvm/libcxx/include/stdlib.h";
+    printf("resect-test ===> Parsing %s\n", filename);
 
     resect_parse_options options = resect_options_create();
     resect_options_add_language(options, "c++");
+    resect_options_add_standard(options, "c++17");
 
-    // resect_options_add_include_path(options, "/usr/lib/gcc/x86_64-linux-gnu/11/include/");
-    resect_options_add_include_path(options, "llvm/libcxx/include/");
-    resect_options_add_include_path(options, "/usr/local/include/");
-    resect_options_add_include_path(options, "/usr/include/");
-    resect_options_add_include_path(options, "/usr/include/linux/");
+    /* resect_options_add_single(options, "-nostdinc++"); */
+    /* resect_options_add_single(options, "-stdlib++-isystem ../llvm/libcxx/include"); */
+    resect_options_add_single(options, "-stdlib++-isystem /home/jboehland/repos/common-lisp/FFI/libresect/llvm/libcxx/include");
+    resect_options_add_include_path(options, "/home/jboehland/repos/common-lisp/FFI/libresect/llvm/libcxx/include");
+    resect_options_add_include_path(options, "/home/jboehland/repos/common-lisp/FFI/libresect/llvm-bin/lib/clang/13.0.0/include");
+    /* resect_options_add_include_path(options, "../llvm/libcxx/include"); */
+    /* resect_options_add_include_path(options, "../llvm-bin/lib/clang/13.0.0/include"); */
+    /* resect_options_add_system_include_path(options, "../llvm/libcxx/include"); */
+    /* resect_options_add_system_include_path(options, "../llvm-bin/lib/clang/13.0.0/include"); */
+    /* resect_options_add_include_path(options, "/home/jboehland/repos/common-lisp/FFI/libresect/llvm/libcxxabi/include/"); */
+    /* resect_options_add_include_path(options, "/home/jboehland/repos/common-lisp/FFI/libresect/llvm/libc/include/"); */
+    /* resect_options_add_include_path(options, "/usr/include/c++/v1/"); */
+    /* resect_options_add_include_path(options, "/usr/lib64/clang/16/include/"); */
+    /* resect_options_add_include_path(options, "/usr/bin/../lib64/gcc/x86_64-suse-linux/13/../../../../x86_64-suse-linux/include"); */
+    /* resect_options_add_include_path(options, "/usr/local/include/"); */
+    /* resect_options_add_include_path(options, "/usr/include/"); */
 
     resect_options_add_target(options, "x86_64-pc-linux-gnu");
+
+    /* resect_options_add_single(options, "-nostdinc++"); */
+    resect_options_add_single(options, "-xc++");
+    resect_options_add_single(options, "-stdlib=libc++");
+    resect_options_add_single(options, "-ferror-limit=0");
+    resect_options_add_single(options, "-fno-implicit-templates");
+    resect_options_add_single(options, "-fc++-abi=itanium");
+    resect_options_add_single(options, "-Wno-nonnull");
+
+    resect_options_include_definition(options, "simple::*");
+    resect_options_include_definition(options, "si:*");
+
+    resect_options_exclude_definition(options, "__.*");
+    resect_options_exclude_definition(options, "std::.*");
+    resect_options_exclude_source(options, "/usr/include/.*");
+    resect_options_exclude_source(options, "/home/jboehland/repos/common-lisp/FFI/libresect/.*");
+
     // resect_options_add_target(options, "x86_64-linux-gnu");
     resect_options_print_diagnostics(options);
 

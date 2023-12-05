@@ -1,7 +1,17 @@
 #!/bin/bash
 
+if [[ -z "$BUILD_TYPE" ]]; then
+    # BUILD_TYPE="Release"
+    # Debug build is huge, but useful for debugging
+    # BUILD_TYPE="Debug"
+    # Release build, but has no debug symbols
+    BUILD_TYPE="RelWithDebInfo"
+    # BUILD_TYPE="MinSizeRel"
+fi
+
 WORK_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
-BUILD_DIR=$WORK_DIR/build/llvm
+BUILD_PARENT_DIR=$WORK_DIR/build-$BUILD_TYPE
+BUILD_DIR=$BUILD_PARENT_DIR/llvm
 
 LLVM_PROJECTS_DIR=$WORK_DIR/llvm
 LLVM_DIR=$LLVM_PROJECTS_DIR/llvm
@@ -17,17 +27,27 @@ if [[ -z "$BUILD_THREAD_COUNT" ]]; then
     BUILD_THREAD_COUNT=$(($CPU_COUNT/4))
     BUILD_THREAD_COUNT=$(($BUILD_THREAD_COUNT > 0 ? $BUILD_THREAD_COUNT : 1))
 fi
+# output build/directory info
+echo "BUILD_TYPE: ${BUILD_TYPE}"
+echo "PARENT_BUILD_DIR: ${BUILD_PARENT_DIR}"
+echo "BUILD_DIR: ${BUILD_DIR}"
+echo "LLVM_PROJECTS_DIR: ${LLVM_PROJECTS_DIR}"
+echo "LLVM_DIR: ${LLVM_DIR}"
+echo "CLANG_DIR: ${CLANG_DIR}"
+echo "LLVM_INSTALL_DIR: ${LLVM_INSTALL_DIR}"
+echo "LIBCLANG_STATIC_BUILD: ${LIBCLANG_STATIC_BUILD}"
+echo "LIBCLANG_STATIC_BUILD_DIR: ${LIBCLANG_STATIC_BUILD_DIR}"
+echo "LIBCLANG_STATIC_INSTALL_DIR: ${LIBCLANG_STATIC_INSTALL_DIR}"
+echo "BUILD_THREAD_COUNT: ${BUILD_THREAD_COUNT}"
 
-if [[ -z "$BUILD_TYPE" ]]; then
-    BUILD_TYPE="Debug"
-    # BUILD_TYPE="MinSizeRel"
-fi
+
 
 mkdir -p $BUILD_DIR && cd $BUILD_DIR
 
 # gold linker reduces memory consumption during linking
 cmake -DCMAKE_INSTALL_PREFIX=$LLVM_INSTALL_DIR \
       -DCMAKE_BUILD_TYPE="$BUILD_TYPE" \
+      -DCMAKE_VERBOSE_MAKEFILE=ON \
       -DLLVM_USE_LINKER=gold \
       -DLLVM_ENABLE_PROJECTS="clang;" \
       -DLLVM_TARGETS_TO_BUILD='X86;AArch64;' \
@@ -42,6 +62,7 @@ mkdir -p $LIBCLANG_STATIC_BUILD_DIR && cd $LIBCLANG_STATIC_BUILD_DIR
 
 cmake -DCMAKE_INSTALL_PREFIX=$LIBCLANG_STATIC_INSTALL_DIR \
       -DCMAKE_BUILD_TYPE="$BUILD_TYPE" \
+      -DCMAKE_VERBOSE_MAKEFILE=ON \
       -DCMAKE_POSITION_INDEPENDENT_CODE=ON \
       -DBUILD_SHARED_LIBS=OFF \
       -DLIBCLANG_SOURCES_DIR=$CLANG_DIR \

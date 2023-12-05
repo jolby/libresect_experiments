@@ -454,6 +454,8 @@ RESECT_API resect_parse_options resect_options_create();
 
 RESECT_API void resect_options_add(resect_parse_options opts, const char *key, const char *value);
 
+RESECT_API void resect_options_add_single(resect_parse_options opts, const char *value);
+
 RESECT_API void resect_options_add_concat(resect_parse_options opts, const char *key, const char *value);
 
 RESECT_API void resect_options_include_definition(resect_parse_options opts, const char *name);
@@ -469,6 +471,8 @@ RESECT_API void resect_options_enforce_definition(resect_parse_options opts, con
 RESECT_API void resect_options_enforce_source(resect_parse_options opts, const char *source);
 
 RESECT_API void resect_options_add_include_path(resect_parse_options opts, const char *path);
+
+RESECT_API void resect_options_add_system_include_path(resect_parse_options opts, const char *path);
 
 RESECT_API void resect_options_add_framework_path(resect_parse_options opts, const char *framework);
 

@@ -5,7 +5,7 @@
 #include <string.h>
 #include <assert.h>
 
-#define RESECT_CONTEXT_MAX_DEPTH 5
+#define RESECT_CONTEXT_MAX_DEPTH 500
 
 /*
  * TRANSLATION CONTEXT

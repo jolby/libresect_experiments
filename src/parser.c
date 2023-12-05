@@ -27,6 +27,9 @@ void resect_options_add(resect_parse_options opts, const char *key, const char *
     resect_collection_add(opts->args, resect_string_from_c(value));
 }
 
+void resect_options_add_single(resect_parse_options opts, const char *value) {
+    resect_collection_add(opts->args, resect_string_from_c(value));
+}
 void resect_options_add_concat(resect_parse_options opts, const char *key, const char *value) {
     resect_collection_add(opts->args, resect_string_format("%s%s", key, value));
 }
@@ -45,11 +48,13 @@ resect_parse_options resect_options_create() {
     opts->enforced_definition_patterns = resect_collection_create();
     opts->enforced_source_patterns = resect_collection_create();
 
-    resect_collection_add(opts->args, resect_string_from_c("-ferror-limit=0"));
-    resect_collection_add(opts->args, resect_string_from_c("-fno-implicit-templates"));
-    resect_collection_add(opts->args, resect_string_from_c("-fc++-abi=itanium"));
-    resect_collection_add(opts->args, resect_string_from_c("-Wno-nonnull"));
+    /* Move the responsibility of setting these default options to the user of the library
 
+      resect_collection_add(opts->args, resect_string_from_c("-ferror-limit=0"));
+      resect_collection_add(opts->args, resect_string_from_c("-fno-implicit-templates"));
+      resect_collection_add(opts->args, resect_string_from_c("-fc++-abi=itanium"));
+      resect_collection_add(opts->args, resect_string_from_c("-Wno-nonnull"));
+    */
     return opts;
 }
 
@@ -85,10 +90,12 @@ void resect_options_exclude_source(resect_parse_options opts, const char *name) 
 }
 
 void resect_options_enforce_definition(resect_parse_options opts, const char *name) {
+    fprintf(stdout, "XXX ADD ENFORCE DEFINITION: %s\n", name);
     resect_collection_add(opts->enforced_definition_patterns, resect_string_from_c(name));
 }
 
 void resect_options_enforce_source(resect_parse_options opts, const char *name) {
+    fprintf(stdout, "XXX ADD ENFORCE SOURCE: %s\n", name);
     resect_collection_add(opts->enforced_source_patterns, resect_string_from_c(name));
 }
 
@@ -113,13 +120,18 @@ resect_collection resect_options_get_enforced_definitions(resect_parse_options o
 }
 
 resect_collection resect_options_get_enforced_sources(resect_parse_options opts) {
-    return opts->excluded_source_patterns;
+    return opts->enforced_source_patterns;
 }
 
 void resect_options_add_include_path(resect_parse_options opts, const char *path) {
-    resect_options_add(opts, "--include-directory", path);
+    /* resect_options_add(opts, "--include-directory", path); */
+    resect_options_add(opts, "-I", path);
 }
 
+void resect_options_add_system_include_path(resect_parse_options opts, const char *path) {
+    /* resect_options_add(opts, "--include-directory", path); */
+    resect_options_add(opts, "-system", path);
+}
 void resect_options_add_framework_path(resect_parse_options opts, const char *framework) {
     resect_options_add_concat(opts, "-F", framework);
 }
@@ -230,6 +242,12 @@ resect_translation_unit resect_parse(const char *filename, resect_parse_options 
     } else {
         clang_argc = 0;
         clang_argv = NULL;
+    }
+
+    resect_iterator es_iter = resect_collection_iterator(resect_options_get_enforced_sources(options));
+    while (resect_iterator_next(es_iter)) {
+        resect_string arg = resect_iterator_value(es_iter);
+        printf("CLANG ENFORCED SOURCE PATTERN: %s\n", (char *) resect_string_to_c(arg));
     }
 
     resect_translation_context context = resect_context_create(options);
