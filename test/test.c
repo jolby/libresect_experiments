@@ -95,6 +95,8 @@ int main(int argc, char **argv) {
     resect_options_add_single(options, "-stdlib++-isystem /home/jboehland/repos/common-lisp/FFI/libresect/llvm/libcxx/include");
     resect_options_add_include_path(options, "/home/jboehland/repos/common-lisp/FFI/libresect/llvm/libcxx/include");
     resect_options_add_include_path(options, "/home/jboehland/repos/common-lisp/FFI/libresect/llvm-bin/lib/clang/13.0.0/include");
+    resect_options_add_include_path(options, "/usr/include/qt6/");
+    resect_options_add_include_path(options, "/usr/include/qt6/QtCore/");
     /* resect_options_add_include_path(options, "../llvm/libcxx/include"); */
     /* resect_options_add_include_path(options, "../llvm-bin/lib/clang/13.0.0/include"); */
     /* resect_options_add_system_include_path(options, "../llvm/libcxx/include"); */
@@ -117,12 +119,22 @@ int main(int argc, char **argv) {
     resect_options_add_single(options, "-fc++-abi=itanium");
     resect_options_add_single(options, "-Wno-nonnull");
 
-    resect_options_include_definition(options, "simple::*");
-    resect_options_include_definition(options, "si:*");
+    /* resect_options_include_definition(options, "simple::*"); */
+    /* resect_options_include_definition(options, "si:*"); */
 
+    resect_options_include_definition(options, "Qt::*");
+
+    resect_options_exclude_definition(options, ".*::d_ptr.*");
+    resect_options_exclude_definition(options, ".*::q_ptr.*");
+    resect_options_exclude_definition(options, ".*Private.*");
     resect_options_exclude_definition(options, "__.*");
     resect_options_exclude_definition(options, "std::.*");
-    resect_options_exclude_source(options, "/usr/include/.*");
+    /* resect_options_exclude_source(options, "/usr/include/.*"); */
+    // enforce wins over exclude
+    resect_options_include_source(options, "/usr/include/qt6/.*");
+
+    resect_options_exclude_source(options, "/usr/include/*h");
+    resect_options_exclude_source(options, ".*Private.*");
     resect_options_exclude_source(options, "/home/jboehland/repos/common-lisp/FFI/libresect/.*");
 
     // resect_options_add_target(options, "x86_64-linux-gnu");

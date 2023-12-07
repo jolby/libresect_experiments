@@ -9,19 +9,6 @@
 /*
  * PARSER
  */
-struct P_resect_parse_options {
-    resect_collection args;
-    resect_bool single;
-    resect_bool diagnostics;
-
-    resect_collection included_definition_patterns;
-    resect_collection included_source_patterns;
-    resect_collection excluded_definition_patterns;
-    resect_collection excluded_source_patterns;
-    resect_collection enforced_definition_patterns;
-    resect_collection enforced_source_patterns;
-};
-
 void resect_options_add(resect_parse_options opts, const char *key, const char *value) {
     resect_collection_add(opts->args, resect_string_from_c(key));
     resect_collection_add(opts->args, resect_string_from_c(value));
@@ -211,11 +198,6 @@ void resect_options_print_diagnostics(resect_parse_options opts) {
 /*
  * UNIT
  */
-struct P_resect_translation_unit {
-    resect_collection declarations;
-    resect_translation_context context;
-};
-
 resect_collection resect_unit_declarations(resect_translation_unit unit) {
     return unit->declarations;
 }

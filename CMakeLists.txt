@@ -77,3 +77,6 @@ target_link_libraries(resect
 
 add_executable(resect-test test/test.c)
 target_link_libraries(resect-test PUBLIC resect)
+
+add_executable(resect_dump_to_sqlite src/dump_to_sqlite_cmd.c)
+target_link_libraries(resect_dump_to_sqlite PUBLIC resect)

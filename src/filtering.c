@@ -168,10 +168,10 @@ resect_inclusion_status resect_filtering_explicit_inclusion_status(resect_filter
     if (match_pattern_collection(context->excluded_definition_patterns, declaration_name)
         || match_pattern_collection(context->excluded_source_patterns, declaration_source)) {
         if (match_pattern_collection(context->excluded_definition_patterns, declaration_name)) {
-            fprintf(stdout, "XXX Excluding because name: %s\n", declaration_name);
+            /* fprintf(stdout, "XXX Excluding because name: %s\n", declaration_name); */
         }
         if (match_pattern_collection(context->excluded_source_patterns, declaration_source)) {
-            fprintf(stdout, "XXX Excluding because source: %s\n", declaration_source);
+            /* fprintf(stdout, "XXX Excluding because source: %s\n", declaration_source); */
         }
         return RESECT_INCLUSION_STATUS_EXCLUDED;
     }

@@ -121,6 +121,11 @@ resect_inclusion_status resect_filtering_pop_inclusion_status(resect_filtering_c
  */
 typedef struct P_resect_translation_context *resect_translation_context;
 
+struct P_resect_translation_unit {
+    resect_collection declarations;
+    resect_translation_context context;
+};
+
 enum P_resect_garbage_kind {
     RESECT_GARBAGE_KIND_TEMPLATE_ARGUMENT,
     RESECT_GARBAGE_KIND_DECL,
@@ -251,6 +256,19 @@ unsigned long resect_hash(const char *str);
 /*
  * OPTIONS
  */
+struct P_resect_parse_options {
+    resect_collection args;
+    resect_bool single;
+    resect_bool diagnostics;
+
+    resect_collection included_definition_patterns;
+    resect_collection included_source_patterns;
+    resect_collection excluded_definition_patterns;
+    resect_collection excluded_source_patterns;
+    resect_collection enforced_definition_patterns;
+    resect_collection enforced_source_patterns;
+};
+
 resect_collection resect_options_get_included_definitions(resect_parse_options opts);
 
 resect_collection resect_options_get_included_sources(resect_parse_options opts);
