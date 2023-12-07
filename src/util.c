@@ -6,16 +6,12 @@
 #include <stdarg.h>
 
 #include "uthash.h"
+#include "resect_types_private.h"
 #include "resect_private.h"
 
 /*
  * STRING
  */
-struct P_resect_string {
-    char *value;
-    size_t capacity;
-};
-
 resect_string resect_string_create(unsigned int initial_capacity) {
     resect_string result = malloc(sizeof(struct P_resect_string));
     result->capacity = initial_capacity > 0 ? initial_capacity : 1;
@@ -176,17 +172,6 @@ resect_bool resect_string_equal(resect_string this, resect_string that) {
 /*
  * COLLECTION
  */
-struct P_resect_collection_element {
-    void *value;
-    struct P_resect_collection_element *next;
-    struct P_resect_collection_element *prev;
-};
-
-struct P_resect_collection {
-    unsigned int size;
-    struct P_resect_collection_element *head, *tail;
-};
-
 resect_collection resect_collection_create() {
     resect_collection collection = malloc(sizeof(struct P_resect_collection));
     collection->head = NULL;
@@ -259,11 +244,6 @@ unsigned int resect_collection_size(resect_collection collection) {
 /*
  * ITERATOR
  */
-struct P_resect_iterator {
-    struct P_resect_collection_element *head;
-    struct P_resect_collection_element *current;
-};
-
 resect_iterator resect_collection_iterator(resect_collection collection) {
     resect_iterator iterator = malloc(sizeof(struct P_resect_iterator));
     iterator->head = collection->head;
@@ -298,16 +278,6 @@ void resect_iterator_free(resect_iterator iter) {
 /*
  * SET
  */
-typedef struct P_resect_set_item {
-    void *key;
-
-    UT_hash_handle hh;
-} *resect_set_item;
-
-struct P_resect_set {
-    resect_set_item head;
-};
-
 resect_set resect_set_create() {
     resect_set set = malloc(sizeof(struct P_resect_set));
     set->head = NULL;
@@ -345,20 +315,6 @@ void resect_set_add_to_collection(resect_set set, resect_collection collection) 
         resect_collection_add(collection, element->key);
     }
 }
-
-/*
- * STRING HASH TABLE
- */
-struct P_resect_table_entry {
-    char *key;
-    void *value;
-
-    UT_hash_handle hh;
-};
-
-struct P_resect_table {
-    struct P_resect_table_entry *head;
-};
 
 resect_table resect_table_create() {
     resect_table table = malloc(sizeof(struct P_resect_table));

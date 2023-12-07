@@ -4,6 +4,7 @@
 #define CINDEX_NO_EXPORTS
 
 #include "../resect.h"
+#include "resect_types_private.h"
 #include <clang-c/Index.h>
 #include <stdio.h>
 #include <stdbool.h>
@@ -11,8 +12,6 @@
 /*
  * STRING
  */
-typedef struct P_resect_string *resect_string;
-
 resect_string resect_string_format(const char *format, ...);
 
 resect_string resect_string_from_clang(CXString from);
@@ -57,8 +56,6 @@ unsigned int resect_collection_size(resect_collection collection);
 /*
  * SET
  */
-typedef struct P_resect_set *resect_set;
-
 resect_set resect_set_create();
 
 void resect_set_free(resect_set set);
@@ -81,8 +78,6 @@ void resect_iterator_free(resect_iterator iter);
 /*
  * HASH TABLE
  */
-typedef struct P_resect_table *resect_table;
-
 resect_table resect_table_create();
 
 resect_bool resect_table_put_if_absent(resect_table table, const char *key, void *value);
@@ -98,8 +93,6 @@ void resect_table_free(resect_table table, void (*value_destructor)(void *, void
 /*
  * FILTERING
  */
-
-typedef struct P_resect_filtering_context *resect_filtering_context;
 
 resect_filtering_context resect_filtering_context_create(resect_parse_options options);
 
@@ -119,19 +112,6 @@ resect_inclusion_status resect_filtering_pop_inclusion_status(resect_filtering_c
 /*
  * CONTEXT
  */
-typedef struct P_resect_translation_context *resect_translation_context;
-
-struct P_resect_translation_unit {
-    resect_collection declarations;
-    resect_translation_context context;
-};
-
-enum P_resect_garbage_kind {
-    RESECT_GARBAGE_KIND_TEMPLATE_ARGUMENT,
-    RESECT_GARBAGE_KIND_DECL,
-    RESECT_GARBAGE_KIND_TYPE,
-};
-
 resect_translation_context resect_context_create(resect_parse_options opts);
 
 resect_collection resect_create_decl_collection(resect_translation_context context);
@@ -192,13 +172,6 @@ void resect_type_collection_free(resect_collection types, resect_set deallocated
 /*
  * DECLARATION
  */
-typedef void (*resect_data_deallocator)(void *data, resect_set deallocated);
-
-typedef struct {
-    resect_decl_kind kind;
-    resect_decl decl;
-} resect_decl_result;
-
 resect_decl_result resect_decl_create(resect_translation_context context, CXCursor cursor);
 
 void resect_decl_free(resect_decl decl, resect_set deallocated);
@@ -256,19 +229,6 @@ unsigned long resect_hash(const char *str);
 /*
  * OPTIONS
  */
-struct P_resect_parse_options {
-    resect_collection args;
-    resect_bool single;
-    resect_bool diagnostics;
-
-    resect_collection included_definition_patterns;
-    resect_collection included_source_patterns;
-    resect_collection excluded_definition_patterns;
-    resect_collection excluded_source_patterns;
-    resect_collection enforced_definition_patterns;
-    resect_collection enforced_source_patterns;
-};
-
 resect_collection resect_options_get_included_definitions(resect_parse_options opts);
 
 resect_collection resect_options_get_included_sources(resect_parse_options opts);

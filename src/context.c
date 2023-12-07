@@ -1,4 +1,5 @@
 #include "../resect.h"
+#include "resect_types_private.h"
 #include "resect_private.h"
 
 #include <stdlib.h>
@@ -10,23 +11,6 @@
 /*
  * TRANSLATION CONTEXT
  */
-struct P_resect_translation_context {
-    resect_set exposed_decls;
-    resect_table decl_table;
-    resect_table template_parameter_table;
-    resect_language language;
-    resect_filtering_context filtering;
-
-    resect_collection state_stack;
-    resect_collection garbage;
-    size_t context_depth;
-};
-
-struct P_resect_garbage {
-    enum P_resect_garbage_kind kind;
-    void *data;
-};
-
 resect_translation_context resect_context_create(resect_parse_options opts) {
     resect_translation_context context = malloc(sizeof(struct P_resect_translation_context));
     context->exposed_decls = resect_set_create();

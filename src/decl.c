@@ -1,4 +1,5 @@
 #include "../resect.h"
+#include "resect_types_private.h"
 #include "resect_private.h"
 #include <stdlib.h>
 #include <assert.h>
@@ -225,40 +226,6 @@ int resect_template_argument_get_position(resect_template_argument arg) {
 /*
  * DECLARATION
  */
-typedef struct P_resect_decl_child_visit_data {
-    resect_translation_context context;
-    resect_decl parent;
-} *resect_decl_child_visit_data;
-
-struct P_resect_decl {
-    resect_decl_kind kind;
-    resect_string id;
-    resect_string name;
-    resect_string namespace;
-    resect_location location;
-    resect_string mangled_name;
-    resect_string comment;
-    resect_access_specifier access;
-    resect_linkage_kind linkage;
-
-    resect_bool is_template;
-    resect_collection template_parameters;
-    resect_collection template_arguments;
-    resect_decl template;
-    resect_bool partial;
-    resect_bool forward;
-
-    resect_decl owner;
-    resect_type type;
-
-    resect_string source;
-
-    resect_inclusion_status inclusion_status;
-
-    void *data;
-    resect_data_deallocator data_deallocator;
-};
-
 static resect_decl_kind convert_cursor_kind(CXCursor cursor) {
 
     enum CXCursorKind clang_kind = clang_getTemplateCursorKind(cursor);
@@ -1115,19 +1082,6 @@ void resect_decl_collection_free(resect_collection decls, resect_set deallocated
 /*
  * RECORD
  */
-typedef struct P_resect_field_data {
-    resect_bool bitfield;
-    long long width;
-    long long offset;
-} *resect_field_data;
-
-typedef struct P_resect_record_data {
-    resect_collection fields;
-    resect_collection methods;
-    resect_collection parents;
-    resect_bool abstract;
-} *resect_record_data;
-
 resect_bool resect_is_struct(resect_decl decl) {
     return decl->kind == RESECT_DECL_KIND_CLASS
            || decl->kind == RESECT_DECL_KIND_STRUCT
@@ -1290,11 +1244,6 @@ void resect_record_init(resect_translation_context context, resect_decl decl, CX
 /*
  * TYPEDEF
  */
-typedef struct P_resect_typedef_data {
-    resect_type aliased_type;
-} *resect_typedef_data;
-
-
 void resect_typedef_data_free(void *data, resect_set deallocated) {
     if (data == NULL || !resect_set_add(deallocated, data)) {
         return;
@@ -1336,15 +1285,6 @@ resect_type resect_typedef_get_aliased_type(resect_decl decl) {
 /*
  * FUNCTION
  */
-typedef struct P_resect_function_data {
-    resect_bool variadic;
-    resect_storage_class storage_class;
-    resect_collection parameters;
-    resect_function_calling_convention calling_convention;
-    resect_type result_type;
-    resect_bool inlined;
-} *resect_function_data;
-
 resect_type resect_function_get_result_type(resect_decl decl) {
     assert(decl->kind == RESECT_DECL_KIND_FUNCTION);
     resect_function_data data = decl->data;
@@ -1527,13 +1467,6 @@ void resect_function_init(resect_translation_context context, resect_decl decl, 
 /*
  * ENUM
  */
-typedef struct P_resect_enum_constant_data {
-    resect_bool is_unsigned;
-    unsigned long long unsigned_value;
-    long long value;
-} *resect_enum_constant_data;
-
-
 void resect_enum_constant_free(void *data, resect_set deallocated) {
     if (data == NULL || !resect_set_add(deallocated, data)) {
         return;
@@ -1596,11 +1529,6 @@ void resect_enum_constant_init(resect_translation_context context, resect_decl d
     decl->data = data;
 }
 
-typedef struct P_resect_enum_data {
-    resect_collection constants;
-    resect_type type;
-} *resect_enum_data;
-
 resect_collection resect_enum_constants(resect_decl decl) {
     assert(decl->kind == RESECT_DECL_KIND_ENUM);
     resect_enum_data data = decl->data;
@@ -1662,14 +1590,6 @@ void resect_enum_init(resect_translation_context context, resect_decl decl, CXCu
 /*
  * VARIABLE
  */
-typedef struct P_resect_variable_data {
-    resect_variable_kind kind;
-    resect_string string_value;
-    long long int_value;
-    double float_value;
-    resect_storage_class storage_class;
-} *resect_variable_data;
-
 resect_type resect_variable_get_type(resect_decl decl) {
     assert(decl->kind == RESECT_DECL_KIND_VARIABLE);
     return decl->type;
@@ -1763,10 +1683,6 @@ void resect_variable_init(resect_translation_context context, resect_decl decl, 
 /*
  * MACRO
  */
-typedef struct P_resect_macro_data {
-    resect_bool is_function_like;
-} *resect_macro_data;
-
 resect_bool resect_macro_is_function_like(resect_decl decl) {
     assert(decl->kind == RESECT_DECL_KIND_MACRO);
     resect_macro_data data = decl->data;
@@ -1794,13 +1710,6 @@ void resect_macro_init(resect_translation_context context, resect_decl decl, CXC
 /*
  * METHOD
  */
-typedef struct P_resect_method_data {
-    resect_function_data function_data;
-    resect_bool pure_virtual;
-    resect_bool virtual;
-    resect_bool non_mutating;
-} *resect_method_data;
-
 resect_type resect_method_get_result_type(resect_decl decl) {
     assert(decl->kind == RESECT_DECL_KIND_METHOD);
     resect_method_data data = decl->data;
@@ -1896,10 +1805,6 @@ void resect_method_init(resect_translation_context context, resect_decl decl, CX
 /*
  * TEMPLATE PARAMETER
  */
-typedef struct P_resect_template_parameter_data {
-    resect_template_parameter_kind kind;
-} *resect_template_parameter_data;
-
 void resect_template_parameter_data_free(void *data, resect_set deallocated) {
     if (data == NULL || !resect_set_add(deallocated, data)) {
         return;

@@ -8,18 +8,8 @@
 #include <assert.h>
 #include <string.h>
 
+#include "resect_types_private.h"
 #include "resect_private.h"
-
-struct P_resect_filtering_context {
-    resect_collection included_definition_patterns;
-    resect_collection included_source_patterns;
-    resect_collection excluded_definition_patterns;
-    resect_collection excluded_source_patterns;
-    resect_collection enforced_definition_patterns;
-    resect_collection enforced_source_patterns;
-
-    resect_collection status_stack;
-};
 
 static void print_pcre_error(int errornumber, size_t erroroffset) {
     PCRE2_UCHAR buffer[256];

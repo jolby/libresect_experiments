@@ -1,4 +1,5 @@
 #include "../resect.h"
+#include "resect_types_private.h"
 #include "resect_private.h"
 
 #include <stdlib.h>
@@ -11,24 +12,6 @@
 /*
  * TYPE
  */
-struct P_resect_type {
-    resect_type_kind kind;
-    resect_string name;
-    unsigned int size;
-    unsigned int alignment;
-    resect_type_category category;
-    resect_collection fields;
-    resect_bool const_qualified;
-    resect_bool pod;
-    resect_bool undeclared;
-    resect_collection template_arguments;
-
-    resect_decl decl;
-
-    resect_data_deallocator data_deallocator;
-    void *data;
-};
-
 void resect_type_free(resect_type type, resect_set deallocated) {
     if (!resect_set_add(deallocated, type)) {
         return;
@@ -68,11 +51,6 @@ resect_type_kind convert_type_kind(enum CXTypeKind kind) {
     }
 }
 
-typedef struct P_resect_type_visit_data {
-    resect_type type;
-    resect_translation_context context;
-} *resect_type_visit_data;
-
 enum CXVisitorResult visit_type_fields(CXCursor cursor, CXClientData data) {
     resect_type_visit_data visit_data = data;
 
@@ -88,11 +66,6 @@ enum CXVisitorResult visit_type_fields(CXCursor cursor, CXClientData data) {
 /*
  * ARRAY
  */
-typedef struct P_resect_array_data {
-    resect_type type;
-    long long size;
-} *resect_array_data;
-
 void resect_array_data_free(void *data, resect_set deallocated) {
     if (data == NULL || !resect_set_add(deallocated, data)) {
         return;
@@ -127,10 +100,6 @@ resect_type resect_array_get_element_type(resect_type type) {
 /*
  * POINTER
  */
-typedef struct P_resect_pointer_data {
-    resect_type type;
-} *resect_pointer_data;
-
 void resect_pointer_data_free(void *data, resect_set deallocated) {
     if (data == NULL || !resect_set_add(deallocated, data)) {
         return;
@@ -158,11 +127,6 @@ resect_type resect_pointer_get_pointee_type(resect_type type) {
 /*
  * REFERENCE
  */
-typedef struct P_resect_reference_data {
-    resect_bool is_lvalue;
-    resect_type type;
-} *resect_reference_data;
-
 void resect_reference_data_free(void *data, resect_set deallocated) {
     if (data == NULL || !resect_set_add(deallocated, data)) {
         return;
@@ -197,12 +161,6 @@ resect_bool resect_reference_is_lvalue(resect_type type) {
 /*
  * FUNCTION PROTO
  */
-typedef struct P_resect_function_proto_data {
-    resect_type result_type;
-    resect_bool variadic;
-    resect_collection parameters;
-} *resect_function_proto_data;
-
 void resect_function_proto_free(void *data, resect_set deallocated) {
     if (data == NULL || !resect_set_add(deallocated, data)) {
         return;

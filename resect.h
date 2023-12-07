@@ -212,9 +212,17 @@ typedef enum {
     RESECT_INCLUSION_STATUS_INCLUDED = 4
 } resect_inclusion_status;
 
+/*
+ * RESECT TYPES
+ */
+typedef struct P_resect_iterator *resect_iterator;
+typedef struct P_resect_parse_options *resect_parse_options;
+
+/*
+ * SEMANTIC TYPES
+ */
 typedef struct P_resect_translation_unit *resect_translation_unit;
 typedef struct P_resect_collection *resect_collection;
-typedef struct P_resect_iterator *resect_iterator;
 typedef struct P_resect_location *resect_location;
 typedef struct P_resect_decl *resect_decl;
 typedef struct P_resect_type *resect_type;
@@ -448,8 +456,6 @@ RESECT_API resect_template_parameter_kind resect_template_parameter_get_kind(res
 /*
  * PARSE OPTIONS
  */
-typedef struct P_resect_parse_options *resect_parse_options;
-
 RESECT_API resect_parse_options resect_options_create();
 
 RESECT_API void resect_options_add(resect_parse_options opts, const char *key, const char *value);

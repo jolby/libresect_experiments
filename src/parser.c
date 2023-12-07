@@ -1,4 +1,5 @@
 #include "../resect.h"
+#include "resect_types_private.h"
 #include "resect_private.h"
 
 #include <stdlib.h>
