@@ -203,6 +203,11 @@ typedef struct {
 } resect_decl_result;
 
 
+struct P_function_class_mangling_result {
+    CXCursor cursor;
+    resect_string mangling;
+};
+
 /*
  * TYPE
  */

@@ -630,11 +630,6 @@ void resect_decl_init_template_from_cursor(resect_decl decl,
     }
 }
 
-struct P_function_class_mangling_result {
-    CXCursor cursor;
-    resect_string mangling;
-};
-
 static enum CXChildVisitResult find_mangled_name(CXCursor cursor,
                                                  CXCursor parent,
                                                  CXClientData data) {

@@ -178,10 +178,6 @@ void resect_decl_free(resect_decl decl, resect_set deallocated);
 
 void resect_decl_collection_free(resect_collection decls, resect_set deallocated);
 
-enum CXChildVisitResult resect_visit_child_declaration(CXCursor cursor,
-                                                       CXCursor parent,
-                                                       CXClientData data);
-
 resect_string resect_location_to_string(resect_location location);
 
 resect_string resect_format_cursor_namespace(CXCursor cursor);
@@ -197,6 +193,15 @@ void resect_register_exclusion(resect_translation_context translation_context);
 void resect_reset_registered_exclusion(resect_translation_context translation_context);
 
 bool resect_is_exclusion_detected(resect_translation_context translation_context);
+
+/*
+ * DECLARATION VISITORS
+*/
+enum CXChildVisitResult resect_visit_child_declaration(CXCursor cursor, CXCursor parent, CXClientData data);
+enum CXChildVisitResult resect_visit_record_child(CXCursor cursor, CXCursor parent, CXClientData data);
+enum CXChildVisitResult resect_visit_function_parameter(CXCursor cursor, CXCursor parent, CXClientData data);
+enum CXChildVisitResult resect_visit_enum_constant(CXCursor cursor, CXCursor parent, CXClientData data);
+enum CXChildVisitResult resect_visit_method_parameter(CXCursor cursor, CXCursor parent, CXClientData data);
 
 /*
  * TEMPLATE ARGUMENT
