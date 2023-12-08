@@ -2,25 +2,28 @@
 
 if [[ -z "$BUILD_TYPE" ]]; then
     # BUILD_TYPE="Release"
+    # Release build, but has debug symbols
+    # BUILD_TYPE="RelWithDebInfo"
     # Debug build is huge, but useful for debugging
     # BUILD_TYPE="Debug"
-    # Release build, but has no debug symbols
-    BUILD_TYPE="RelWithDebInfo"
-    # BUILD_TYPE="MinSizeRel"
+    #
+    BUILD_TYPE="MinSizeRel"
 fi
 
 WORK_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
-BUILD_PARENT_DIR=$WORK_DIR/build-$BUILD_TYPE
+BUILD_PARENT_DIR=$WORK_DIR/build/$BUILD_TYPE
 BUILD_DIR=$BUILD_PARENT_DIR/llvm
+TARGET_DIR=$WORK_DIR/target/$BUILD_TYPE
 
 LLVM_PROJECTS_DIR=$WORK_DIR/llvm
 LLVM_DIR=$LLVM_PROJECTS_DIR/llvm
 CLANG_DIR=$LLVM_PROJECTS_DIR/clang
-LLVM_INSTALL_DIR=$WORK_DIR/llvm-bin
+
+LLVM_INSTALL_DIR=$TARGET_DIR/llvm-bin
 
 LIBCLANG_STATIC_BUILD=$WORK_DIR/libclang-static-build
-LIBCLANG_STATIC_BUILD_DIR=$WORK_DIR/build/libclang-static
-LIBCLANG_STATIC_INSTALL_DIR=$WORK_DIR/libclang-bundle
+LIBCLANG_STATIC_BUILD_DIR=$BUILD_PARENT_DIR/libclang-static
+LIBCLANG_STATIC_INSTALL_DIR=$TARGET_DIR/libclang-bundle
 
 if [[ -z "$BUILD_THREAD_COUNT" ]]; then
     CPU_COUNT=$(nproc --all)
@@ -41,7 +44,7 @@ echo "LIBCLANG_STATIC_INSTALL_DIR: ${LIBCLANG_STATIC_INSTALL_DIR}"
 echo "BUILD_THREAD_COUNT: ${BUILD_THREAD_COUNT}"
 
 
-
+mkdir -p $TARGET_DIR
 mkdir -p $BUILD_DIR && cd $BUILD_DIR
 
 # gold linker reduces memory consumption during linking
