@@ -223,56 +223,104 @@ int ensure_directory_exists(const char *dirname) {
   return 0;
 }
 
+typedef void (*resect_argv_option_handler)(resect_parse_options options, const char *arg);
+
 struct option_with_help {
-    struct option opt;
-    const char *help_text;
+  struct option opt;
+  const char *help_text;
+  resect_argv_option_handler handler;
 };
 
-#define MAKE_OPTION(name, has_arg, flag, val, help) {{name, has_arg, flag, val}, help}
+static const char *resect_short_options = "a:t:b:c:l:s:D:I:";
 
-static struct option_with_help long_options[] = {
-    MAKE_OPTION("add", optional_argument, 0, 'a',
-                "Add a fully formatted argument to pass along to clang. i.e. '--add=-I/usr/include'. Can be used multiple times."),
-    MAKE_OPTION("target", required_argument, 0,   't', "Set the target triple. Ex: 'x86_64-pc-linux-gnu'."),
-    MAKE_OPTION("abi"   , optional_argument, 0,   'b', "Set the ABI. Ex: 'itanium'."),
-    MAKE_OPTION("cpu"   , optional_argument, 0,   'c', "Set the CPU. Ex: 'x86_64'."),
-    MAKE_OPTION("arch"   , optional_argument, 0,   0, "Set the architecture."),
-    MAKE_OPTION("intrinsic"   , optional_argument, 0,   0, "Set intrinsic. Ex: sse4.2, avx, avx2, etc."),
-    MAKE_OPTION("language", optional_argument, 0, 'l', "Set the language to parse. Defaults to 'c'. Valid values are 'c' and 'c++' and 'objc'."),
-    MAKE_OPTION("standard", optional_argument, 0, 's', "Language standard to compile for. Defaults to 'c11' for C and 'c++11' for C++."),
-    MAKE_OPTION("single-header", optional_argument, 0, 0, "Parse as a single header. Defaults to false."),
-    MAKE_OPTION("print-diagnostics", optional_argument, 0, 0, "Print diagnostics. Defaults to false."),
-    MAKE_OPTION("add-defines", optional_argument, 0, 'D', "Add a define. Ex: '-DDEBUG=1'. Can be used multiple times."),
-    MAKE_OPTION("include-path", optional_argument, 0, 'I', "Add an include path. Can be used multiple times."),
-    MAKE_OPTION("system-include-path", optional_argument, 0, 0, "Add a system include path. Can be used multiple times."),
-    MAKE_OPTION("include-source", optional_argument, 0, 0, "Include a source file for parsing with regex. Can be used multiple times."),
-    MAKE_OPTION("exclude-source", optional_argument, 0, 0, "Exclude a source file from parsing with regex. Can be used multiple times."),
-    MAKE_OPTION("include-definition", optional_argument, 0, 0, "Include a definition file for parsing with regex. Can be used multiple times."),
-    MAKE_OPTION("exclude-definition", optional_argument, 0, 0, "Exclude a definition file from parsing with regex. Can be used multiple times."),
-    MAKE_OPTION("enforce-source", optional_argument, 0, 0, "Enforce that a source file matching regex is allowed to be included in the translation unit. Can be used multiple times."),
-    MAKE_OPTION("enforce-definition", optional_argument, 0, 0, "Enforce that a definition file matching regex is allowed to be included in the translation unit. Can be used multiple times."),
-    MAKE_OPTION(0, 0, 0, 0, 0) // Needs to end with a fully zero-filled struct
+static struct option_with_help resect_long_options[] = {
+  {.opt = {.name = "add", .has_arg = optional_argument, .flag = 0, .val = 'a'},
+   .help_text = "Add a fully formatted argument to pass along to clang. i.e. '--add=-I/usr/include'. Can be used multiple times.",
+   .handler = resect_options_add},
+  {.opt = {.name = "target", .has_arg = required_argument, .flag = 0, .val = 't'},
+   .help_text = "Set the target triple. Ex: 'x86_64-pc-linux-gnu'.",
+   .handler = resect_options_add_target},
+  {.opt = {.name = "abi", .has_arg = optional_argument, .flag = 0, .val = 'b'},
+   .help_text = "Set the ABI. Ex: 'itanium'."
+   .handler = resect_options_add_abi},
+  {.opt = {.name = "cpu", .has_arg = optional_argument, .flag = 0, .val = 'c'},
+   .help_text = "Set the CPU. Ex: 'x86_64'.",
+   .handler = resect_options_add_cpu},
+  {.opt = {.name = "arch", .has_arg = optional_argument, .flag = 0, .val = 0},
+   .help_text = "Set the architecture."
+   .handler = resect_options_add_arch},
+  {.opt = {.name = "intrinsic", .has_arg = optional_argument, .flag = 0, .val = 0},
+   .help_text = "Set the intrinsic. Ex: sse4.2, avx, avx2, etc.",
+   .handler = resect_options_intrinsic},
+  {.opt = {.name = "language", .has_arg = optional_argument, .flag = 0, .val = 'l'},
+   .help_text = "Set the language to parse. Defaults to 'c'. Valid values are 'c' and 'c++' and 'objc'."
+   .handler = resect_options_add_language},
+  {.opt = {.name = "standard", .has_arg = optional_argument, .flag = 0, .val = 's'},
+   .help_text = "Language standard to compile for. Defaults to 'c11' for C and 'c++11' for C++.",
+   .handler = resect_options_add_standard},
+  {.opt = {.name = "single-header", .has_arg = optional_argument, .flag = 0, .val = 0},
+   .help_text = "Parse as a single header. Defaults to false.",
+   .handler = resect_options_single_header},
+  {.opt = {.name = "print-diagnostics", .has_arg = optional_argument, .flag = 0, .val = 0},
+   .help_text = "Print diagnostics. Defaults to false.",
+   .handler = resect_options_print_diagnostics},
+  {.opt = {.name = "add-defines", .has_arg = optional_argument, .flag = 0, .val = 'D'},
+   .help_text = "Add a define. Ex: '-DDEBUG=1'. Can be used multiple times.",
+   .handler = resect_options_add_define},
+  {.opt = {.name = "include-path", .has_arg = optional_argument, .flag = 0, .val = 'I'},
+   .help_text = "Add an include path. Can be used multiple times.",
+   .handler = resect_options_add_include_path},
+  {.opt = {.name = "system-include-path", .has_arg = optional_argument, .flag = 0, .val = 0},
+   .help_text = "Add a system include path. Can be used multiple times.",
+   .handler = resect_options_add_system_include_path},
+  {.opt = {.name = "include-source", .has_arg = optional_argument, .flag = 0, .val = 0},
+   .help_text = "Include a source file for parsing with regex. Can be used multiple times.",
+    .handler = resect_options_include_source},
+  {.opt = {.name = "exclude-source", .has_arg = optional_argument, .flag = 0, .val = 0},
+   .help_text = "Exclude a source file from parsing with regex. Can be used multiple times.",
+   .handler = resect_options_exclude_source},
+  {.opt = {.name = "include-definition", .has_arg = optional_argument, .flag = 0, .val = 0},
+   .help_text = "Include a definition file for parsing with regex. Can be used multiple times.",
+   .handler = resect_options_include_definition},
+  {.opt = {.name = "exclude-definition", .has_arg = optional_argument, .flag = 0, .val = 0},
+   .help_text = "Exclude a definition file from parsing with regex. Can be used multiple times.",
+   .handler = resect_options_exclude_definition},
+  {.opt = {.name = "enforce-source", .has_arg = optional_argument, .flag = 0, .val = 0},
+   .help_text = "Enforce that a source file matching regex is allowed to be included in the translation unit. Can be used multiple times.",
+   .handler = resect_options_enforce_source},
+  {.opt = {.name = "enforce-definition", .has_arg = optional_argument, .flag = 0, .val = 0},
+   .help_text = "Enforce that a definition file matching regex is allowed to be included in the translation unit. Can be used multiple times.",
+   .handler = resect_options_enforce_definition},
+  {.opt = {.name = 0, .has_arg = 0, .flag = 0, .val = 0},
+   .help_text = 0} // Needs to end with a fully zero-filled struct
 };
-
-static const char *short_options = "a:t:b:c:l:s:D:I:";
 
 void print_usage() {
   printf("Usage: dump_to_sqlite HEADER_FILE WORKING_DIR [OPTIONS]\n");
   printf("  HEADER_FILE: The header file to parse.\n");
   printf("  WORKING_DIR: The directory to save the sqlite binding DB, the translation unit and any other artifacts.\n");
-  for (size_t i = 0; long_options[i].opt.name != NULL; i++) {
-    printf("--%s: %s\n", long_options[i].opt.name, long_options[i].help_text);
+  for (size_t i = 0; resect_long_options[i].opt.name != NULL; i++) {
+    printf("--%s: %s\n", resect_long_options[i].opt.name, resect_long_options[i].help_text);
   }
 }
 
 int parse_argv_options(resect_parse_options options, int argc, char **argv) {
-  printf("XXX START argc: %d\n", argc);
+  size_t num_resect_options = sizeof(resect_long_options)/sizeof(resect_long_options[0]);
+  struct option opts[num_resect_options];
+
+  for(size_t i=0; i<num_resect_options; i++){
+    opts[i] = resect_long_options[i].opt;
+  }
+
+  printf("XXX START argc: %d, sizeof ONE resect_long_options: %zu sizeof ALL resect_long_options: %zu, number of resect_long_options: %zu\n",
+         argc , sizeof(resect_long_options[0]), sizeof(resect_long_options), sizeof(resect_long_options)/sizeof(resect_long_options[0]));
   print_usage();
+
   int option_index = 0;
   int arg_index = 0;
   while (1) {
-    int c = getopt_long(argc, argv, short_options,
-                        (struct option*)long_options, &option_index);
+    int c = getopt_long(argc, argv, resect_short_options,
+                        (struct option*)resect_long_options, &option_index);
     printf("arg_index: %d, short_option: %d, optarg: %s, option_index: %d\n",
            arg_index, c, optarg, option_index);
     // No more options
