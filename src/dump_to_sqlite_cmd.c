@@ -441,14 +441,21 @@ int print_declarations(resect_collection decls) {
   resect_iterator_free(decl_iter);
 }
 
-/* int sql_execute(sqlite3 *db, const char *sql, char *zErrMsg) { */
-/*   int rc = sqlite3_exec(db, sql, callback, 0, &zErrMsg); */
-/*   if( rc != SQLITE_OK ) { */
-/*     fprintf(stderr, "SQL error: %s\n", zErrMsg); */
-/*     sqlite3_free(zErrMsg); */
-/*   } */
-/*   return rc; */
-/* } */
+int simple_sql_execute(sqlite3 *db, const char *sql) {
+  if(db == NULL) {
+    fprintf(stderr, "Error! Database is NULL.\n");
+    return -1;
+  }
+  int rc = sqlite3_exec(db, sql, NULL, 0, 0);
+
+  if( rc != SQLITE_OK ) {
+    fprintf(stderr, "Unable to execute: %s. Error Message:  %s\n",
+            sql, sqlite3_errmsg(db));
+  } else {
+    fprintf(stdout, "SQL executed successfully\n");
+  }
+  return rc;
+}
 
 void create_location_string(resect_decl decl, char* buffer, size_t size) {
     resect_location loc = resect_decl_get_location(decl);
@@ -498,41 +505,85 @@ int insert_declaration_into_sqlite(resect_decl decl, sqlite3 *db) {
   return SQLITE_OK;
 }
 
-int ensure_sqlite_tables(sqlite3 *db) {
-  if(db == NULL) {
-    fprintf(stderr, "Error! Database is NULL.\n");
-    return -1;
-  }
-  const char *sql;
-  int rc;
+int ensure_resect_runs_table(sqlite3 *db) {
+  const char *sql =
+  "CREATE TABLE IF NOT EXISTS resect_runs ("  \
+    "id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT," \
+    "start_time         TEXT," \
+    "end_time           TEXT," \
+    "configuration      JSON," \
+    "arguments          JSON," \
+    "errors             JSON," \
+    "final_results      JSON" \
+    ");";
+  return simple_sql_execute(db, sql);
+}
 
-  sql = "CREATE TABLE IF NOT EXISTS resect_declarations ("  \
-    "id INT PRIMARY KEY  NOT NULL AUTOINCREMENT," \
+/* "FOREIGN KEY(fields) REFERENCES resect_fields(id)," \ */
+/* "FOREIGN KEY(template_arguments) REFERENCES resect_template_arguments(id)" \ */
+/* "FOREIGN KEY(declaration) REFERENCES resect_declarations(id)," \ */
+
+int ensure_resect_types_table(sqlite3 *db) {
+  const char *sql =
+  "CREATE TABLE IF NOT EXISTS resect_types ("  \
+    "id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT," \
+    "kind                INTEGER," \
+    "name                TEXT," \
+    "size                INTEGER," \
+    "alignment           INTEGER," \
+    "category            INTEGER," \
+    "const_qualified     INTEGER," \
+    "pod                 INTEGER," \
+    "undeclared          INTEGER" \
+    ");";
+  return simple_sql_execute(db, sql);
+}
+
+int ensure_resect_declarations_table(sqlite3 *db) {
+  const char *sql = "CREATE TABLE IF NOT EXISTS resect_declarations ("  \
+    "id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT," \
     "resect_id           TEXT," \
-    "kind                INT," \
+    "resect_type_id      INTEGER,"
+    "owning_declaration_id  INTEGER,"
+    "kind                INTEGER," \
     "namespace           TEXT," \
     "name                TEXT," \
     "mangled_name        TEXT," \
     "location            TEXT," \
     "comment             TEXT," \
     "source              TEXT," \
-    "access              INT, " \
-    "linkage             INT, " \
-    "inclusion_status    INT, " \
-    "is_template         INT, " \
-    "is_partial          INT, " \
-    "is_forward          INT, " \
-    "FOREIGN KEY(resect_type) REFERENCES resect_type(id), " \
-    "FOREIGN KEY(owning_declaration) REFERENCES resect_declarations(id), " \
-    );";
+    "access              INTEGER, " \
+    "linkage             INTEGER," \
+    "inclusion_status    INTEGER," \
+    "is_template         INTEGER," \
+    "is_partial          INTEGER," \
+    "is_forward          INTEGER," \
+    "FOREIGN KEY(resect_type_id) REFERENCES resect_types(id)," \
+    "FOREIGN KEY(owning_declaration_id) REFERENCES resect_declarations(id)" \
+    ");";
+  return simple_sql_execute(db, sql);
+}
 
-  /* Execute SQL statement */
-  rc = sqlite3_exec(db, sql, NULL, 0, 0);
-
+int ensure_sqlite_tables(sqlite3 *db) {
+  if(db == NULL) {
+    fprintf(stderr, "Error! Database is NULL.\n");
+    return -1;
+  }
+  int rc;
+  rc = ensure_resect_runs_table(db);
   if( rc != SQLITE_OK ) {
-    fprintf(stderr, "Unable to create table. Error Message:  %s\n", sqlite3_errmsg(db));
-  } else {
-    fprintf(stdout, "Table created successfully\n");
+    fprintf(stderr, "Unable to create resect_resect_runs table. Error Message:  %s\n", sqlite3_errmsg(db));
+    return -1;
+  }
+  rc = ensure_resect_types_table(db);
+  if( rc != SQLITE_OK ) {
+    fprintf(stderr, "Unable to create resect_types table. Error Message:  %s\n", sqlite3_errmsg(db));
+    return -1;
+  }
+  rc = ensure_resect_declarations_table(db);
+  if( rc != SQLITE_OK ) {
+    fprintf(stderr, "Unable to create resect_declarations table. Error Message:  %s\n", sqlite3_errmsg(db));
+    return -1;
   }
   return rc;
 }
