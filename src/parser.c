@@ -15,7 +15,7 @@ void resect_options_add(resect_parse_options opts, const char *key, const char *
     resect_collection_add(opts->args, resect_string_from_c(value));
 }
 
-void resect_options_add_single(resect_parse_options opts, const char *value) {
+void resect_options_add_single_arg(resect_parse_options opts, const char *value) {
     resect_collection_add(opts->args, resect_string_from_c(value));
 }
 void resect_options_add_concat(resect_parse_options opts, const char *key, const char *value) {

@@ -90,9 +90,9 @@ int main(int argc, char **argv) {
     resect_options_add_language(options, "c++");
     resect_options_add_standard(options, "c++17");
 
-    /* resect_options_add_single(options, "-nostdinc++"); */
-    /* resect_options_add_single(options, "-stdlib++-isystem ../llvm/libcxx/include"); */
-    resect_options_add_single(options, "-stdlib++-isystem /home/jboehland/repos/common-lisp/FFI/libresect/llvm/libcxx/include");
+    /* resect_options_add_single_arg(options, "-nostdinc++"); */
+    /* resect_options_add_single_arg(options, "-stdlib++-isystem ../llvm/libcxx/include"); */
+    resect_options_add_single_arg(options, "-stdlib++-isystem /home/jboehland/repos/common-lisp/FFI/libresect/llvm/libcxx/include");
     resect_options_add_include_path(options, "/home/jboehland/repos/common-lisp/FFI/libresect/llvm/libcxx/include");
     resect_options_add_include_path(options, "/home/jboehland/repos/common-lisp/FFI/libresect/llvm-bin/lib/clang/13.0.0/include");
     resect_options_add_include_path(options, "/usr/include/qt6/");
@@ -111,13 +111,13 @@ int main(int argc, char **argv) {
 
     resect_options_add_target(options, "x86_64-pc-linux-gnu");
 
-    /* resect_options_add_single(options, "-nostdinc++"); */
-    resect_options_add_single(options, "-xc++");
-    resect_options_add_single(options, "-stdlib=libc++");
-    resect_options_add_single(options, "-ferror-limit=0");
-    resect_options_add_single(options, "-fno-implicit-templates");
-    resect_options_add_single(options, "-fc++-abi=itanium");
-    resect_options_add_single(options, "-Wno-nonnull");
+    /* resect_options_add_single_arg(options, "-nostdinc++"); */
+    resect_options_add_single_arg(options, "-xc++");
+    resect_options_add_single_arg(options, "-stdlib=libc++");
+    resect_options_add_single_arg(options, "-ferror-limit=0");
+    resect_options_add_single_arg(options, "-fno-implicit-templates");
+    resect_options_add_single_arg(options, "-fc++-abi=itanium");
+    resect_options_add_single_arg(options, "-Wno-nonnull");
 
     /* resect_options_include_definition(options, "simple::*"); */
     /* resect_options_include_definition(options, "si:*"); */
@@ -148,7 +148,10 @@ int main(int argc, char **argv) {
 
     resect_collection decls = resect_unit_declarations(context);
     resect_iterator decl_iter = resect_collection_iterator(decls);
-    while (resect_iterator_next(decl_iter)) {
+    int max_decls = 10;
+    int decl_count = 0;
+    while ((decl_count < max_decls) && resect_iterator_next(decl_iter)) {
+        decl_count++;
         resect_decl decl = resect_iterator_value(decl_iter);
 
         switch (resect_decl_get_kind(decl)) {

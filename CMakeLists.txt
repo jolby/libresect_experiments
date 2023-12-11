@@ -1,16 +1,24 @@
 cmake_minimum_required(VERSION 3.16)
 project(resect C)
 
-set(LIBCLANG_DIR "${CMAKE_CURRENT_SOURCE_DIR}/libclang-bundle/")
-set(LIBCLANG_INCLUDE_DIRS "${LIBCLANG_DIR}/include/")
-set(LIBCLANG_LINK_DIRS "${LIBCLANG_DIR}/lib/")
-set(THIRD_PARTY_DIR "${CMAKE_CURRENT_SOURCE_DIR}/third-party/")
+find_package(SQLite3 REQUIRED)
+# Use current directory name as the build type if not specified
+get_filename_component(BUILD_TYPE_FROM_DIR ${CMAKE_BINARY_DIR} NAME)
+set(CMAKE_BUILD_TYPE ${BUILD_TYPE_FROM_DIR})
 
-# CMAKE_BUILD_TYPE was not set, default to Debug.
-# if (NOT CMAKE_BUILD_TYPE)
-#     set(CMAKE_BUILD_TYPE Debug)
-# endif()
-set(CMAKE_BUILD_TYPE Debug)
+message(STATUS "Build type (from current build dir): ${BUILD_TYPE_FROM_DIR}")
+message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
+
+set(LIBCLANG_DIR "${CMAKE_CURRENT_SOURCE_DIR}/target/${BUILD_TYPE_FROM_DIR}/libclang-bundle")
+set(LIBCLANG_INCLUDE_DIRS "${LIBCLANG_DIR}/include")
+set(LIBCLANG_LINK_DIRS "${LIBCLANG_DIR}/lib")
+set(THIRD_PARTY_DIR "${CMAKE_CURRENT_SOURCE_DIR}/third-party")
+
+message(STATUS "LIBCLANG_INCLUDE_DIRS: ${LIBCLANG_INCLUDE_DIRS}")
+message(STATUS "LIBCLANG_LINK_DIRS: ${LIBCLANG_LINK_DIRS}")
+message(STATUS "THIRD_PARTY_DIR: ${THIRD_PARTY_DIR}")
+
+
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 #
 # PCRE
@@ -79,4 +87,6 @@ add_executable(resect-test test/test.c)
 target_link_libraries(resect-test PUBLIC resect)
 
 add_executable(resect_dump_to_sqlite src/dump_to_sqlite_cmd.c)
-target_link_libraries(resect_dump_to_sqlite PUBLIC resect)
+# target_link_libraries(resect_dump_to_sqlite PUBLIC resect)
+target_include_directories(resect_dump_to_sqlite PUBLIC ${SQLite3_INCLUDE_DIRS})
+target_link_libraries(resect_dump_to_sqlite PUBLIC resect ${SQLite3_LIBRARIES})

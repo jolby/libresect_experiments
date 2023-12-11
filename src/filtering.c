@@ -38,7 +38,7 @@ static resect_collection compile_pattern_collection(resect_collection collection
             assert(!"Failed to parse inclusion/exclusion pattern");
         }
 
-        fprintf(stderr, "XXX Success--  Compiled pattern: %s\n", resect_string_to_c(pattern));
+        /* fprintf(stderr, "XXX Success--  Compiled pattern: %s\n", resect_string_to_c(pattern)); */
         resect_collection_add(result, compiled);
     }
     resect_iterator_free(iter);
@@ -150,7 +150,7 @@ resect_inclusion_status resect_filtering_explicit_inclusion_status(resect_filter
             /* fprintf(stdout, "XXX ENFORCING because name: %s\n", declaration_name); */
         }
         if (match_pattern_collection(context->enforced_source_patterns, declaration_source)) {
-            fprintf(stdout, "XXX ENFORCING because source: %s\n", declaration_source);
+            /* fprintf(stdout, "XXX ENFORCING because source: %s\n", declaration_source); */
         }
         return RESECT_INCLUSION_STATUS_INCLUDED;
     }

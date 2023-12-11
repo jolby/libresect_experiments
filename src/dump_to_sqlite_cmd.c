@@ -17,6 +17,8 @@
 #include <clang-c/CXCompilationDatabase.h>
 #include <clang-c/CXErrorCode.h>
 
+#include "sqlite3.h"
+
 /*
  * Prototype declarations
  */
@@ -32,7 +34,8 @@ resect_translation_unit resect_parse_tu2(const char *filename,
                                          resect_parse_options options);
 int check_file_exists(const char *filename);
 int ensure_directory_exists(const char *dirname);
-int parse_argv_options(resect_parse_options options, int argc, char **argv);
+int parse_argv_options(resect_parse_options options, char **header_file_out, char **working_dir_out,
+                       int argc, char **argv);
 
 
 void print_record_fields(resect_collection fields) {
@@ -158,6 +161,7 @@ resect_translation_unit resect_parse_tu2(const char *filename,
                                                        &tu);
     if (err != CXError_Success) {
       fprintf(stderr, "Error creating translation unit: %d\n", err);
+      return NULL;
     } else {
       fprintf(stderr, "Successfully created translation unit.\n");
     }
@@ -225,7 +229,7 @@ int ensure_directory_exists(const char *dirname) {
 
 typedef void (*resect_argv_option_handler)(resect_parse_options options, const char *arg);
 
-struct option_with_help {
+struct resect_argv_option_item {
   struct option opt;
   const char *help_text;
   resect_argv_option_handler handler;
@@ -233,40 +237,40 @@ struct option_with_help {
 
 static const char *resect_short_options = "a:t:b:c:l:s:D:I:";
 
-static struct option_with_help resect_long_options[] = {
+static struct resect_argv_option_item resect_long_options[] = {
   {.opt = {.name = "add", .has_arg = optional_argument, .flag = 0, .val = 'a'},
    .help_text = "Add a fully formatted argument to pass along to clang. i.e. '--add=-I/usr/include'. Can be used multiple times.",
-   .handler = resect_options_add},
+   .handler = resect_options_add_single_arg},
   {.opt = {.name = "target", .has_arg = required_argument, .flag = 0, .val = 't'},
    .help_text = "Set the target triple. Ex: 'x86_64-pc-linux-gnu'.",
    .handler = resect_options_add_target},
   {.opt = {.name = "abi", .has_arg = optional_argument, .flag = 0, .val = 'b'},
-   .help_text = "Set the ABI. Ex: 'itanium'."
+   .help_text = "Set the ABI. Ex: 'itanium'.",
    .handler = resect_options_add_abi},
   {.opt = {.name = "cpu", .has_arg = optional_argument, .flag = 0, .val = 'c'},
    .help_text = "Set the CPU. Ex: 'x86_64'.",
    .handler = resect_options_add_cpu},
   {.opt = {.name = "arch", .has_arg = optional_argument, .flag = 0, .val = 0},
-   .help_text = "Set the architecture."
+   .help_text = "Set the architecture.",
    .handler = resect_options_add_arch},
-  {.opt = {.name = "intrinsic", .has_arg = optional_argument, .flag = 0, .val = 0},
-   .help_text = "Set the intrinsic. Ex: sse4.2, avx, avx2, etc.",
-   .handler = resect_options_intrinsic},
+  /* {.opt = {.name = "intrinsic", .has_arg = optional_argument, .flag = 0, .val = 0}, */
+  /*  .help_text = "Set the intrinsic. Ex: sse4.2, avx, avx2, etc.", */
+  /*  .handler = resect_options_intrinsic}, */
   {.opt = {.name = "language", .has_arg = optional_argument, .flag = 0, .val = 'l'},
-   .help_text = "Set the language to parse. Defaults to 'c'. Valid values are 'c' and 'c++' and 'objc'."
+   .help_text = "Set the language to parse. Defaults to 'c'. Valid values are 'c' and 'c++' and 'objc'.",
    .handler = resect_options_add_language},
   {.opt = {.name = "standard", .has_arg = optional_argument, .flag = 0, .val = 's'},
    .help_text = "Language standard to compile for. Defaults to 'c11' for C and 'c++11' for C++.",
    .handler = resect_options_add_standard},
-  {.opt = {.name = "single-header", .has_arg = optional_argument, .flag = 0, .val = 0},
-   .help_text = "Parse as a single header. Defaults to false.",
-   .handler = resect_options_single_header},
-  {.opt = {.name = "print-diagnostics", .has_arg = optional_argument, .flag = 0, .val = 0},
-   .help_text = "Print diagnostics. Defaults to false.",
-   .handler = resect_options_print_diagnostics},
+  /* {.opt = {.name = "single-header", .has_arg = optional_argument, .flag = 0, .val = 0}, */
+  /*  .help_text = "Parse as a single header. Defaults to false.", */
+  /*  .handler = resect_options_single_header}, */
+  /* {.opt = {.name = "print-diagnostics", .has_arg = optional_argument, .flag = 0, .val = 0}, */
+  /*  .help_text = "Print diagnostics. Defaults to false.", */
+  /*  .handler = resect_options_print_diagnostics}, */
   {.opt = {.name = "add-defines", .has_arg = optional_argument, .flag = 0, .val = 'D'},
    .help_text = "Add a define. Ex: '-DDEBUG=1'. Can be used multiple times.",
-   .handler = resect_options_add_define},
+   .handler = resect_options_add_single_arg},
   {.opt = {.name = "include-path", .has_arg = optional_argument, .flag = 0, .val = 'I'},
    .help_text = "Add an include path. Can be used multiple times.",
    .handler = resect_options_add_include_path},
@@ -280,10 +284,10 @@ static struct option_with_help resect_long_options[] = {
    .help_text = "Exclude a source file from parsing with regex. Can be used multiple times.",
    .handler = resect_options_exclude_source},
   {.opt = {.name = "include-definition", .has_arg = optional_argument, .flag = 0, .val = 0},
-   .help_text = "Include a definition file for parsing with regex. Can be used multiple times.",
+   .help_text = "Include a definition from parsing with regex. Can be used multiple times.",
    .handler = resect_options_include_definition},
   {.opt = {.name = "exclude-definition", .has_arg = optional_argument, .flag = 0, .val = 0},
-   .help_text = "Exclude a definition file from parsing with regex. Can be used multiple times.",
+   .help_text = "Exclude a definition from parsing with regex. Can be used multiple times.",
    .handler = resect_options_exclude_definition},
   {.opt = {.name = "enforce-source", .has_arg = optional_argument, .flag = 0, .val = 0},
    .help_text = "Enforce that a source file matching regex is allowed to be included in the translation unit. Can be used multiple times.",
@@ -299,12 +303,18 @@ void print_usage() {
   printf("Usage: dump_to_sqlite HEADER_FILE WORKING_DIR [OPTIONS]\n");
   printf("  HEADER_FILE: The header file to parse.\n");
   printf("  WORKING_DIR: The directory to save the sqlite binding DB, the translation unit and any other artifacts.\n");
+  printf("OPTIONS: =================================================\n");
   for (size_t i = 0; resect_long_options[i].opt.name != NULL; i++) {
-    printf("--%s: %s\n", resect_long_options[i].opt.name, resect_long_options[i].help_text);
+    if(resect_long_options[i].opt.val == 0) {
+      printf("--%s: %s\n", resect_long_options[i].opt.name, resect_long_options[i].help_text);
+    } else {
+      printf("-%c, --%s: %s\n", resect_long_options[i].opt.val, resect_long_options[i].opt.name, resect_long_options[i].help_text);
+    }
   }
 }
 
-int parse_argv_options(resect_parse_options options, int argc, char **argv) {
+int parse_argv_options(resect_parse_options options, char **header_file_out, char **working_dir_out,
+                       int argc, char **argv) {
   size_t num_resect_options = sizeof(resect_long_options)/sizeof(resect_long_options[0]);
   struct option opts[num_resect_options];
 
@@ -314,172 +324,52 @@ int parse_argv_options(resect_parse_options options, int argc, char **argv) {
 
   printf("XXX START argc: %d, sizeof ONE resect_long_options: %zu sizeof ALL resect_long_options: %zu, number of resect_long_options: %zu\n",
          argc , sizeof(resect_long_options[0]), sizeof(resect_long_options), sizeof(resect_long_options)/sizeof(resect_long_options[0]));
-  print_usage();
+  /* print_usage(); */
 
   int option_index = 0;
   int arg_index = 0;
   while (1) {
     int c = getopt_long(argc, argv, resect_short_options,
-                        (struct option*)resect_long_options, &option_index);
-    printf("arg_index: %d, short_option: %d, optarg: %s, option_index: %d\n",
-           arg_index, c, optarg, option_index);
+                        (struct option*)opts, &option_index);
     // No more options
     if (c == -1)
       break;
 
-    switch (c) {
-    case 0:
-      // This is a long option. Handle it based on option_index
-      switch (option_index) {
-      case 0:
-        // option_index of 0 corresponds to --add
-        resect_options_add(options, optarg, optarg);
-        break;
-      case 1:
-        // option_index of 1 corresponds to --target
-        resect_options_add_target(options, optarg);
-        break;
-      case 2:
-        // option_index of 2 corresponds to --abi
-        resect_options_add_abi(options, optarg);
-        break;
-      case 3:
-        // option_index of 3 corresponds to --cpu
-        resect_options_add_cpu(options, optarg);
-        break;
-      case 4:
-        // option_index of 4 corresponds to --arch
-        resect_options_add_arch(options, optarg);
-        break;
-      case 5:
-        // option_index of 5 corresponds to --intrinsic
-        /* resect_options_add_intrinsic(options, optarg); */
-        printf("INTRINSIC: %s NOT USED. BROKEN\n", optarg);
-        break;
-      case 6:
-        // option_index of 6 corresponds to --language
-        resect_options_add_language(options, optarg);
-        break;
-      case 7:
-        // option_index of 8 corresponds to --standard
-        resect_options_add_standard(options, optarg);
-        break;
-      case 8:
-        // option_index for single-header
-        resect_options_single_header(options);
-        break;
-      case 9:
-        // option_index for print-diagnostics
-        resect_options_print_diagnostics(options);
-        break;
-      case 10:
-        // option_index of 10 corresponds to --add-defines
-        /* resect_options_add_define(options, optarg); */
-        printf("DEFINE: %s NOT USED. BROKEN\n", optarg);
-        break;
-      case 11:
-        // option_index of 11 corresponds to --include-path
-        resect_options_add_include_path(options, optarg);
-        break;
-      case 12:
-        // option_index of 12 corresponds to --system-include-path
-        resect_options_add_system_include_path(options, optarg);
-        break;
-      case 13:
-        // option_index of 13 corresponds to --include-source
-        resect_options_include_source(options, optarg);
-        break;
-      case 14:
-        // option_index of 14 corresponds to --exclude-source
-        resect_options_exclude_source(options, optarg);
-        break;
-      case 15:
-        // option_index of 15 corresponds to --include-definition
-        resect_options_include_definition(options, optarg);
-        break;
-      case 16:
-        // option_index of 16 corresponds to --exclude-definition
-        resect_options_exclude_definition(options, optarg);
-        break;
-      case 17:
-        // option_index of 17 corresponds to --enforce-source
-        resect_options_enforce_source(options, optarg);
-        break;
-      case 18:
-        // option_index of 18 corresponds to --enforce-definition
-        resect_options_enforce_definition(options, optarg);
-        break;
-      default:
-        printf("Unknown option: %s (option_index: %d)\n", optarg, option_index);
-        print_usage();
-        break;
-      }
-      //a:t:b:c:l:s:D:I:
-    case 'a':
-      resect_options_add(options, optarg, optarg);
-      break;
-    case 't':
-      resect_options_add_target(options, optarg);
-      break;
-    case 'b':
-      resect_options_add_abi(options, optarg);
-      break;
-    case 'c':
-      resect_options_add_cpu(options, optarg);
-      break;
-    case 'l':
-      resect_options_add_language(options, optarg);
-      break;
-    case 's':
-      resect_options_add_standard(options, optarg);
-      break;
-    case 'D':
-      /* resect_options_add_define(options, optarg); */
-      printf("DEFINE: %s NOT USED. BROKEN\n", optarg);
-      break;
-    case 'I':
-      resect_options_add_include_path(options, optarg);
-      break;
-    case '?':
-    default:
+    arg_index++;
+    struct option opt = opts[option_index];
+    if(c == 0) {
+    printf("arg_index: %d, option: %s, optarg: %s \n",
+           arg_index, opt.name, optarg);
+    } else {
+    printf("arg_index: %d, option: %s, short_option: %c, optarg: %s \n",
+           arg_index, opt.name, c, optarg);
+    }
+    // If an option is encountered, call the handler function
+    if(c != '?' && resect_long_options[option_index].handler != NULL) {
+      resect_long_options[option_index].handler(options, optarg);
+    } else {
+      printf("Unknown option: %c\n", c);
+
       print_usage();
-      return 1;
+      return -1;
     }
   }
   // Process any remaining command line arguments (not options).
-  for (option_index = optind; option_index < argc; option_index++) {
-    printf ("Non-option argument %s\n", argv[option_index]);
+  // This should be the header file and working directory.
+  int remaining_args = argc - optind;
+  if(remaining_args != 2) {
+    printf("Error! Expected 2 remaining arguments: [HEADER,WORK_DIR] but got %d.\n", remaining_args);
+    print_usage();
+    return -1;
   }
+  // Get header file and working directory
+  *header_file_out = argv[optind];
+  *working_dir_out = argv[optind+1];
+
   return 0;
 }
 
-int main(int argc, char **argv) {
-  /* if(argc != 3) { */
-  /*   fprintf(stderr, "Usage: dump_to_sqlite HEADER_FILE WORKING_DIR\n"); */
-  /*   exit(-1); */
-  /* } */
-
-  resect_parse_options options = resect_options_create();
-  parse_argv_options(options, argc, argv);
-  exit(0);
-
-  char *filename = argv[1];
-  char *working_dir = argv[2];
-
-  if((check_file_exists(filename) != 0) ||
-     (ensure_directory_exists(working_dir) != 0)) {
-    exit(-1);
-  }
-
-  printf("dump_to_sqlite ===> Parsing %s. Using %s as root directory for saved artifacts.\n", filename, working_dir);
-
-  resect_translation_unit context = resect_parse_tu2(filename, working_dir, options);
-
-  resect_options_free(options);
-
-  printf("LANGUAGE: %d\n", resect_unit_get_language(context));
-
-  resect_collection decls = resect_unit_declarations(context);
+int print_declarations(resect_collection decls) {
   resect_iterator decl_iter = resect_collection_iterator(decls);
   while (resect_iterator_next(decl_iter)) {
     resect_decl decl = resect_iterator_value(decl_iter);
@@ -549,8 +439,190 @@ int main(int argc, char **argv) {
     print_template_parameters(decl);
   }
   resect_iterator_free(decl_iter);
+}
 
+/* int sql_execute(sqlite3 *db, const char *sql, char *zErrMsg) { */
+/*   int rc = sqlite3_exec(db, sql, callback, 0, &zErrMsg); */
+/*   if( rc != SQLITE_OK ) { */
+/*     fprintf(stderr, "SQL error: %s\n", zErrMsg); */
+/*     sqlite3_free(zErrMsg); */
+/*   } */
+/*   return rc; */
+/* } */
+
+void create_location_string(resect_decl decl, char* buffer, size_t size) {
+    resect_location loc = resect_decl_get_location(decl);
+    snprintf(buffer, size, "%s:%d",
+             resect_location_name(loc),
+             resect_location_line(loc));
+}
+
+int insert_declaration_into_sqlite(resect_decl decl, sqlite3 *db) {
+  if(db == NULL) {
+    fprintf(stderr, "Error! Database is NULL.\n");
+    return -1;
+  }
+  // Prepare SQL statement
+  int rc;
+  char *sql = "INSERT INTO DECLS (KIND,NAMESPACE,NAME,LOCATION,MANGLED_NAME,COMMENT,ACCESS,LINKAGE) "\
+    "VALUES (?, ?, ?, ?, ?, ?, ?, ?);";
+  char location[512];
+  create_location_string(decl, location, sizeof(location));
+
+  sqlite3_stmt* stmt = NULL;
+  rc = sqlite3_prepare_v2(db, sql, -1, &stmt, 0);
+
+  if(! (rc == SQLITE_OK )) {
+    fprintf(stderr, "Unable to prepare statement. Error Message:  %s\n", sqlite3_errmsg(db));
+    return -1;
+  } else {
+    // Bind the values from the decl data
+    sqlite3_bind_int(stmt, 1, resect_decl_get_kind(decl));
+    sqlite3_bind_text(stmt, 2, resect_decl_get_namespace(decl), -1, SQLITE_TRANSIENT);
+    sqlite3_bind_text(stmt, 3, resect_decl_get_name(decl), -1, SQLITE_TRANSIENT);
+    sqlite3_bind_text(stmt, 4, location, -1, SQLITE_TRANSIENT);
+    sqlite3_bind_text(stmt, 5, resect_decl_get_mangled_name(decl), -1, SQLITE_TRANSIENT);
+    sqlite3_bind_text(stmt, 6, resect_decl_get_comment(decl), -1, SQLITE_TRANSIENT);
+    sqlite3_bind_int(stmt, 7, resect_decl_get_access_specifier(decl));
+    sqlite3_bind_int(stmt, 8, resect_decl_get_linkage(decl));
+    // Commit the transaction
+    rc = sqlite3_step(stmt);
+    if (rc != SQLITE_DONE) {
+      // Failed to execute
+      printf("Statement execution failed: %s", sqlite3_errmsg(db));
+      return -1;
+    }
+    // Cleanup
+    sqlite3_finalize(stmt);
+  }
+  return SQLITE_OK;
+}
+
+int ensure_sqlite_tables(sqlite3 *db) {
+  if(db == NULL) {
+    fprintf(stderr, "Error! Database is NULL.\n");
+    return -1;
+  }
+  const char *sql;
+  int rc;
+
+  sql = "CREATE TABLE IF NOT EXISTS resect_declarations ("  \
+    "id INT PRIMARY KEY  NOT NULL AUTOINCREMENT," \
+    "resect_id           TEXT," \
+    "kind                INT," \
+    "namespace           TEXT," \
+    "name                TEXT," \
+    "mangled_name        TEXT," \
+    "location            TEXT," \
+    "comment             TEXT," \
+    "source              TEXT," \
+    "access              INT, " \
+    "linkage             INT, " \
+    "inclusion_status    INT, " \
+    "is_template         INT, " \
+    "is_partial          INT, " \
+    "is_forward          INT, " \
+    "FOREIGN KEY(resect_type) REFERENCES resect_type(id), " \
+    "FOREIGN KEY(owning_declaration) REFERENCES resect_declarations(id), " \
+    );";
+
+  /* Execute SQL statement */
+  rc = sqlite3_exec(db, sql, NULL, 0, 0);
+
+  if( rc != SQLITE_OK ) {
+    fprintf(stderr, "Unable to create table. Error Message:  %s\n", sqlite3_errmsg(db));
+  } else {
+    fprintf(stdout, "Table created successfully\n");
+  }
+  return rc;
+}
+
+int ensure_sqlite_db(const char *working_dir, const char *db_name, sqlite3 **db) {
+  int created_rc = ensure_directory_exists(working_dir);
+  if(! (created_rc == 0)) {
+    fprintf(stderr, "Error! Failed to create working directory rc: %d.\n", created_rc);
+    return -1;
+  }
+  char *db_path = malloc(strlen(working_dir) + strlen(db_name) + 2); // 2 for "/" + "\0"
+  strcpy(db_path, working_dir);
+  strcat(db_path, "/");
+  strcat(db_path, db_name);
+
+  printf("Opening sqlite database at %s\n", db_path);
+  int rc = sqlite3_open(db_path, db);
+  printf("XXX db open RC: %d, db: %p\n", rc, *db);
+  if ((rc != SQLITE_OK) || (db == NULL)) {
+    fprintf(stderr, "Can't open database: %s. Error Message:  %s\n", db_path, sqlite3_errmsg(*db));
+    sqlite3_close(*db);
+    free(db_path);
+    return -1;
+  } else {
+    fprintf(stdout, "Opened database successfully. DB: %p\n", *db);
+  }
+  if(ensure_sqlite_tables(*db) != SQLITE_OK) {
+    fprintf(stderr, "Error! Failed to create tables in database. Error message: %s\n", sqlite3_errmsg(*db));
+    sqlite3_close(*db);
+    free(db_path);
+    return -1;
+  }
+  // perform any cleanups
+  free(db_path);
+  return SQLITE_OK;
+}
+
+int insert_declarations_into_sqlite(resect_collection decls, sqlite3 *db) {
+  resect_iterator decl_iter = resect_collection_iterator(decls);
+
+  printf("Inserting %zu declarations into sqlite database.\n", resect_collection_size(decls));
+  while (resect_iterator_next(decl_iter)) {
+    resect_decl decl = resect_iterator_value(decl_iter);
+    int retval;
+    if(! (retval = insert_declaration_into_sqlite(decl, db)) != SQLITE_OK) {
+      fprintf(stderr, "Error! Failed to insert declaration into sqlite database. Error code: %d.\n", retval);
+      return -1;
+    }
+  }
+  resect_iterator_free(decl_iter);
+}
+
+int main(int argc, char **argv) {
+  char *header_file;
+  char *working_dir;
+  char *db_name = "resect.sqlite";
+  sqlite3 *db;
+
+  resect_parse_options options = resect_options_create();
+  parse_argv_options(options, &header_file, &working_dir, argc, argv);
+
+  if((check_file_exists(header_file) != 0) ||
+     (ensure_directory_exists(working_dir) != 0)) {
+    exit(-1);
+  }
+  resect_options_print_diagnostics(options);
+  resect_options_single_header(options);
+
+  printf("dump_to_sqlite ===> Parsing %s. Using %s as root directory for saved artifacts.\n", header_file, working_dir);
+
+  resect_translation_unit context = resect_parse_tu2(header_file, working_dir, options);
+  if(context == NULL) {
+    fprintf(stderr, "Error! Failed to parse translation unit.\n");
+    exit(-1);
+  }
+
+  resect_options_free(options);
+
+  printf("LANGUAGE: %d\n", resect_unit_get_language(context));
+
+  int rc = ensure_sqlite_db(working_dir, db_name, &db);
+  if(rc != SQLITE_OK || db == NULL) {
+    fprintf(stderr, "Error! Failed to create sqlite database: RC: %d, DB: %p\n", rc, db);
+    exit(-1);
+  }
+  resect_collection decls = resect_unit_declarations(context);
+  /* print_declarations(decls); */
+  insert_declarations_into_sqlite(decls, db);
   resect_free(context);
+  sqlite3_close(db);
 
   return 0;
 }
