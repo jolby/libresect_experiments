@@ -46,10 +46,10 @@ resect_error_code simple_sql_execute(sqlite3 *db, const char *sql) {
 resect_error_code create_resect_decl_insert_statement(sqlite3 *db, sqlite3_stmt **stmt) {
     const char *sql = "INSERT INTO resect_declarations " \
       "(kind, resect_id, name, namespace, location, mangled_name, "\
-      "comment, access, linkage, is_template, is_partial, is_forward) " \
+      "comment, source, access, linkage, is_template, is_partial, is_forward) " \
       "VALUES "                                                         \
       "(:kind, :resect_id, :name, :namespace, :location, :mangled_name, " \
-      ":comment, :access, :linkage, :is_template, :is_partial, :is_forward)";
+      ":comment, :source, :access, :linkage, :is_template, :is_partial, :is_forward)";
 
     int rc = sqlite3_prepare_v2(db, sql, -1, stmt, NULL);
     if (rc != SQLITE_OK) {
@@ -72,11 +72,52 @@ resect_error_code insert_declaration_into_sqlite(resect_decl decl, sqlite3 *db ,
   BIND_NAMED_TEXT(stmt, ":location", location);
   BIND_NAMED_TEXT(stmt, ":mangled_name", resect_string_to_c(decl->mangled_name));
   BIND_NAMED_TEXT(stmt, ":comment", resect_string_to_c(decl->comment));
+  BIND_NAMED_TEXT(stmt, ":source", resect_string_to_c(decl->source));
   BIND_NAMED_INT(stmt, ":access", decl->access);
   BIND_NAMED_INT(stmt, ":linkage", decl->linkage);
   BIND_NAMED_INT(stmt, ":is_template", decl->is_template);
   BIND_NAMED_INT(stmt, ":is_partial", decl->partial);
   BIND_NAMED_INT(stmt, ":is_forward", decl->forward);
+  // Commit the transaction
+  int rc = sqlite3_step(stmt);
+  if (rc != SQLITE_DONE) {
+    // Failed to execute
+    printf("Statement execution failed: %s", sqlite3_errmsg(db));
+    sqlite3_finalize(stmt);
+    return RESECT_ERR_SQLITE_STEP_ERROR;
+  }
+  // Cleanup
+  if(finalize_stmt) {
+    sqlite3_finalize(stmt);
+  } else {
+    sqlite3_reset(stmt);
+  }
+  return RESECT_OK;
+}
+
+resect_error_code create_resect_type_insert_statement(sqlite3 *db, sqlite3_stmt **stmt) {
+    const char *sql = "INSERT INTO resect_types " \
+      "(kind, name, size, alignment, category, const_qualified, pod, undeclared) " \
+      "VALUES "                                                         \
+      "(:kind, :name, :size, :alignment, :category, :const_qualified, :pod, :undeclared)";
+    int rc = sqlite3_prepare_v2(db, sql, -1, stmt, NULL);
+    if (rc != SQLITE_OK) {
+        fprintf(stderr, "Unable to prepare statement. Error Message: %s\n",
+                sqlite3_errmsg(db));
+        return RESECT_ERR_SQLITE_PREPARE_ERROR;
+    }
+    return RESECT_OK;
+}
+
+resect_error_code insert_type_into_sqlite(resect_type type, sqlite3 *db , sqlite3_stmt *stmt, resect_bool finalize_stmt) {
+  BIND_NAMED_INT(stmt, ":kind", type->kind);
+  BIND_NAMED_TEXT(stmt, ":name", resect_string_to_c(type->name));
+  BIND_NAMED_INT(stmt, ":size", type->size);
+  BIND_NAMED_INT(stmt, ":alignment", type->alignment);
+  BIND_NAMED_INT(stmt, ":category", type->category);
+  BIND_NAMED_INT(stmt, ":const_qualified", type->const_qualified);
+  BIND_NAMED_INT(stmt, ":pod", type->pod);
+  BIND_NAMED_INT(stmt, ":undeclared", type->undeclared);
   // Commit the transaction
   int rc = sqlite3_step(stmt);
   if (rc != SQLITE_DONE) {
@@ -217,17 +258,28 @@ resect_error_code insert_declarations_into_sqlite(resect_collection decls, sqlit
   printf("Inserting %u declarations into sqlite database.\n", decl_count);
   unsigned int num_processed = 0;
   resect_error_code rc;
-  sqlite3_stmt *stmt;
+  sqlite3_stmt *decl_stmt;
+  sqlite3_stmt *type_stmt;
 
-  if((rc = create_resect_decl_insert_statement(db, &stmt)) != RESECT_OK) {
-    fprintf(stderr, "Error! Failed to create sqlite statement. Error code: %d.\n", rc);
+  if((rc = create_resect_decl_insert_statement(db, &decl_stmt)) != RESECT_OK) {
+    fprintf(stderr, "Error! Failed to create decl sqlite statement. Error code: %d.\n", rc);
+    return rc;
+  }
+  if((rc = create_resect_type_insert_statement(db, &type_stmt)) != RESECT_OK) {
+    fprintf(stderr, "Error! Failed to create type sqlite statement. Error code: %d.\n", rc);
     return rc;
   }
   sqlite3_exec(db, "BEGIN TRANSACTION;", NULL, NULL, NULL);
   while (resect_iterator_next(decl_iter)) {
     resect_decl decl = resect_iterator_value(decl_iter);
-    if((rc = insert_declaration_into_sqlite(decl, db, stmt, resect_false)) != RESECT_OK) {
+    if((rc = insert_declaration_into_sqlite(decl, db, decl_stmt, resect_false)) != RESECT_OK) {
       fprintf(stderr, "Error! Failed to insert declaration into sqlite database. Error code: %d.\n", rc);
+      sqlite3_exec(db, "ROLLBACK;", NULL, NULL, NULL);
+      return RESECT_ERR_SQLITE_INSERT_ERROR;
+    }
+    resect_type type = resect_decl_get_type(decl);
+    if((rc = insert_type_into_sqlite(type, db, type_stmt, resect_false)) != RESECT_OK) {
+      fprintf(stderr, "Error! Failed to insert type into sqlite database. Error code: %d.\n", rc);
       sqlite3_exec(db, "ROLLBACK;", NULL, NULL, NULL);
       return RESECT_ERR_SQLITE_INSERT_ERROR;
     }
@@ -239,6 +291,6 @@ resect_error_code insert_declarations_into_sqlite(resect_collection decls, sqlit
     }
   }
   sqlite3_exec(db, "COMMIT;", NULL, NULL, NULL);
-  sqlite3_finalize(stmt);
+  sqlite3_finalize(decl_stmt);
   resect_iterator_free(decl_iter);
 }
