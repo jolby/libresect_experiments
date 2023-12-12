@@ -4,6 +4,7 @@
 #include <assert.h>
 #include <string.h>
 #include <stdarg.h>
+#include <sys/stat.h>
 
 #include "uthash.h"
 #include "resect_types_private.h"
@@ -167,6 +168,30 @@ resect_bool resect_string_starts_with_c(resect_string this, const char *prefix) 
 
 resect_bool resect_string_equal(resect_string this, resect_string that) {
     return strcmp(this->value, that->value) == 0;
+}
+
+resect_error resect_create_error(resect_error_code code,
+                                 const char *message,
+                                 void *extra_data) {
+    resect_error error = malloc(sizeof(struct P_resect_error));
+    error->code = code;
+    if(NULL == message)
+        error->message = resect_string_from_c(resect_error_strings[code]);
+    else
+        error->message = resect_string_from_c(message);
+    error->message = resect_string_from_c(resect_error_strings[code]);
+    error->extra_data = extra_data;
+    return error;
+}
+
+resect_error_code resect_free_error(resect_error error) {
+    resect_error_code code = error->code;
+    resect_string_free(error->message);
+    if(NULL != error->extra_data) {
+        free(error->extra_data);
+    }
+    free(error);
+    return code;
 }
 
 /*
@@ -523,4 +548,31 @@ unsigned long resect_hash(const char *str) {
     }
 
     return hash;
+}
+
+resect_error_code check_file_exists(const char *filename) {
+  struct stat file_st;
+  if (stat(filename, &file_st) == -1) {
+    // The file does not exist.
+    fprintf(stderr, "Error! Required file doesn't exist. %s \n", filename);
+    return RESECT_ERR_FILE_NOT_FOUND;
+  }
+  return RESECT_OK;
+}
+
+resect_error_code ensure_directory_exists(const char *dirname) {
+  struct stat st;
+  // Check if the directory exists.
+  if (stat(dirname, &st) == -1) {
+    // The directory does not exist. Create it.
+    mkdir(dirname, 0777);
+    if (stat(dirname, &st) == -1) {
+      fprintf(stderr, "Error! Required directory doesn't exist and couldn't be created. %s \n", dirname);
+      return RESECT_ERR_DIR_NOT_FOUND;
+    }
+  } else {
+    // The directory already exists.
+    printf("The directory '%s' already exists.\n", dirname);
+  }
+  return RESECT_OK;
 }

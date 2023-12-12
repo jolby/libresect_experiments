@@ -41,13 +41,17 @@ set_target_properties(pcre2-8 PROPERTIES
 #
 add_library(resect SHARED
         resect.h
+        src/resect_types_private.h
+        src/resect_private.h
         src/parser.c
         src/decl.c
         src/type.c
         src/context.c
         src/util.c
         src/filtering.c
-        src/resect_private.h)
+        src/options.c
+        src/resect_sqlite_private.h
+        src/resect_sqlite.c)
 
 set_target_properties(resect PROPERTIES
     CMAKE_C_STANDARD 99

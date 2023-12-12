@@ -3,6 +3,8 @@
 
 #define CINDEX_NO_EXPORTS
 
+#include <stdlib.h>
+#include <getopt.h>
 #include "../resect.h"
 #include <clang-c/Index.h>
 
@@ -14,7 +16,6 @@
  * =================================================================================================
  */
 
-
 /*
  * STRING
  */
@@ -25,6 +26,27 @@ struct P_resect_string {
     size_t capacity;
 };
 
+/*
+ * RETURN TYPE/ERROR CODES/MESSAGES
+ */
+
+typedef struct P_resect_error *resect_error;
+
+struct P_resect_error {
+  resect_error_code code;
+  resect_string message;
+  void *extra_data;
+};
+
+const char* resect_error_strings[] = {
+    "No error",
+    "Received null pointer",
+    "Out of memory",
+    "Invalid argument",
+    "Max recursion depth reached",
+    "(CLANG) Invalid argument",
+    "(CLANG) AST read error"
+};
 
 /*
  * COLLECTION
@@ -99,6 +121,14 @@ struct P_resect_parse_options {
    resect_collection enforced_source_patterns;
 };
 
+typedef void (*resect_argv_option_handler)(resect_parse_options options, const char *arg);
+
+struct resect_argv_option_item {
+  struct option opt;
+  const char *help_text;
+  resect_argv_option_handler handler;
+};
+
 
 /*
  * FILTERING
@@ -152,6 +182,22 @@ struct P_resect_translation_context {
     size_t context_depth;
 };
 
+typedef void (*resect_error_handler)(resect_error error);
+typedef void (*resect_translation_unit_handler)(resect_translation_unit unit);
+
+struct P_resect_invocation {
+  int argc;
+  char **argv;
+  resect_parse_options options;
+  resect_translation_unit result;
+  resect_collection errors;
+  resect_error_handler error_handler;
+  resect_translation_unit_handler translation_unit_handler;
+  resect_table visitors_table;
+};
+
+// TODO: in case of multithreaded usage, this should be thread-local
+static resect_invocation THE_INVOCATION = NULL;
 
 /*
  * =================================================================================================

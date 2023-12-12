@@ -230,6 +230,13 @@ resect_string resect_format_cursor_full_name(CXCursor cursor);
 
 unsigned long resect_hash(const char *str);
 
+/*
+ * FILES + DIRECTORIES
+*/
+resect_error_code check_file_exists(const char *filename);
+resect_error_code ensure_directory_exists(const char *dirname);
+
+
 
 /*
  * OPTIONS
@@ -245,5 +252,11 @@ resect_collection resect_options_get_excluded_sources(resect_parse_options opts)
 resect_collection resect_options_get_enforced_definitions(resect_parse_options opts);
 
 resect_collection resect_options_get_enforced_sources(resect_parse_options opts);
+
+/*
+ * INVOCATION
+ */
+resect_invocation resect_invocation_create(resect_parse_options options,
+                                           resect_error_handler error_handler);
 
 #endif //RESECT_PRIVATE_H

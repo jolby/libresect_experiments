@@ -22,6 +22,27 @@ extern "C" {
 typedef int resect_bool;
 
 typedef enum {
+    RESECT_OK,
+    RESECT_ERR_NULL_POINTER,
+    RESECT_ERR_OUT_OF_MEMORY,
+    RESECT_ERR_INVALID_ARGUMENT,
+    RESECT_ERR_MAX_RECUSION_DEPTH,
+    RESECT_ERR_FILE_NOT_FOUND,
+    RESECT_ERR_DIR_NOT_FOUND,
+    RESECT_ERR_MISSING_DECL_ID,
+    RESECT_ERR_SQLITE_ERROR,
+    RESECT_ERR_SQLITE_DB_OPEN_ERROR,
+    RESECT_ERR_SQLITE_DDL_ERROR,
+    RESECT_ERR_SQLITE_PREPARE_ERROR,
+    RESECT_ERR_SQLITE_BIND_ERROR,
+    RESECT_ERR_SQLITE_STEP_ERROR,
+    RESECT_ERR_SQLITE_INSERT_ERROR,
+    CLANG_ERR_INVALID_ARGUMENT,
+    CLANG_ERR_AST_READ_ERROR
+} resect_error_code;
+
+
+typedef enum {
     RESECT_DECL_KIND_UNKNOWN = 0,
     RESECT_DECL_KIND_STRUCT = 1,
     RESECT_DECL_KIND_UNION = 2,
@@ -215,8 +236,17 @@ typedef enum {
 /*
  * RESECT TYPES
  */
+typedef struct P_resect_result *resect_result;
 typedef struct P_resect_iterator *resect_iterator;
 typedef struct P_resect_parse_options *resect_parse_options;
+/*
+ * RESECT_INVOCATION
+ *
+ */
+typedef struct P_resect_invocation *resect_invocation;
+
+RESECT_API resect_invocation resect_get_current_invocation();
+
 
 /*
  * SEMANTIC TYPES
