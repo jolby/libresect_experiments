@@ -8,16 +8,16 @@
 #include "resect_private.h"
 #include "resect_sqlite_private.h"
 
-#define CHECK_BIND(call) if ((call) != SQLITE_OK) { \
-    fprintf(stderr, "Unable to bind value. Error Message: %s\n", sqlite3_errmsg(db)); \
+#define CHECK_BIND(call, name) if ((call) != SQLITE_OK) { \
+    fprintf(stderr, "Unable to bind value for param: %s. Error Message: %s\n", name, sqlite3_errmsg(db)); \
     return RESECT_ERR_SQLITE_BIND_ERROR; \
 }
 
 #define BIND_NAMED_INT(stmt, name, value_expression) \
-  CHECK_BIND(sqlite3_bind_int(stmt, sqlite3_bind_parameter_index((stmt), (name)), (value_expression)));
+  CHECK_BIND(sqlite3_bind_int(stmt, sqlite3_bind_parameter_index((stmt), (name)), (value_expression)), name);
 
 #define BIND_NAMED_TEXT(stmt, name, value_expression) \
-  CHECK_BIND(sqlite3_bind_text(stmt, sqlite3_bind_parameter_index((stmt), (name)), (value_expression), -1, SQLITE_TRANSIENT));
+  CHECK_BIND(sqlite3_bind_text(stmt, sqlite3_bind_parameter_index((stmt), (name)), (value_expression), -1, SQLITE_TRANSIENT), name);
 
 //XXX put this in utils??
 void copy_location_string(resect_decl decl, char* buffer, size_t size) {
@@ -64,6 +64,7 @@ resect_error_code insert_declaration_into_sqlite(resect_decl decl, sqlite3 *db ,
   char location[512];
   copy_location_string(decl, location, sizeof(location));
 
+  /* printf("XXX Inserting declaration: %s, kind: %d\n", resect_string_to_c(decl->name), decl->kind); */
   BIND_NAMED_INT(stmt, ":kind", decl->kind);
   BIND_NAMED_TEXT(stmt, ":resect_id", resect_string_to_c(decl->id));
   BIND_NAMED_TEXT(stmt, ":name", resect_string_to_c(decl->name));
@@ -87,6 +88,8 @@ resect_error_code insert_declaration_into_sqlite(resect_decl decl, sqlite3 *db ,
   // Cleanup
   if(finalize_stmt) {
     sqlite3_finalize(stmt);
+  } else {
+    sqlite3_reset(stmt);
   }
   return RESECT_OK;
 }
@@ -210,16 +213,32 @@ resect_error_code ensure_sqlite_db(const char *working_dir, const char *db_name,
 resect_error_code insert_declarations_into_sqlite(resect_collection decls, sqlite3 *db) {
   resect_iterator decl_iter = resect_collection_iterator(decls);
 
-  printf("Inserting %ul declarations into sqlite database.\n", resect_collection_size(decls));
+  unsigned int decl_count = resect_collection_size(decls);
+  printf("Inserting %u declarations into sqlite database.\n", decl_count);
+  unsigned int num_processed = 0;
+  resect_error_code rc;
+  sqlite3_stmt *stmt;
+
+  if((rc = create_resect_decl_insert_statement(db, &stmt)) != RESECT_OK) {
+    fprintf(stderr, "Error! Failed to create sqlite statement. Error code: %d.\n", rc);
+    return rc;
+  }
+  sqlite3_exec(db, "BEGIN TRANSACTION;", NULL, NULL, NULL);
   while (resect_iterator_next(decl_iter)) {
     resect_decl decl = resect_iterator_value(decl_iter);
-    sqlite3_stmt *stmt;
-    create_resect_decl_insert_statement(db, &stmt);
-    int retval;
-    if(! (retval = insert_declaration_into_sqlite(decl, db, stmt, resect_false)) != RESECT_OK) {
-      fprintf(stderr, "Error! Failed to insert declaration into sqlite database. Error code: %d.\n", retval);
+    if((rc = insert_declaration_into_sqlite(decl, db, stmt, resect_false)) != RESECT_OK) {
+      fprintf(stderr, "Error! Failed to insert declaration into sqlite database. Error code: %d.\n", rc);
+      sqlite3_exec(db, "ROLLBACK;", NULL, NULL, NULL);
       return RESECT_ERR_SQLITE_INSERT_ERROR;
     }
+    num_processed++;
+    if(num_processed % 1000 == 0) {
+      printf("Processed %u of %u declarations.\n", num_processed, decl_count);
+      sqlite3_exec(db, "COMMIT;", NULL, NULL, NULL);
+      sqlite3_exec(db, "BEGIN TRANSACTION;", NULL, NULL, NULL);
+    }
   }
+  sqlite3_exec(db, "COMMIT;", NULL, NULL, NULL);
+  sqlite3_finalize(stmt);
   resect_iterator_free(decl_iter);
 }

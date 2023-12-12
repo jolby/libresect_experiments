@@ -43,15 +43,22 @@ add_library(resect SHARED
         resect.h
         src/resect_types_private.h
         src/resect_private.h
-        src/parser.c
         src/decl.c
         src/type.c
         src/context.c
         src/util.c
         src/filtering.c
         src/options.c
-        src/resect_sqlite_private.h
-        src/resect_sqlite.c)
+        src/invocation.c
+        src/parser.c
+        # src/resect_sqlite_private.h
+        # src/resect_sqlite.c
+)
+
+add_library(resect_sql_dump SHARED
+    src/resect_sqlite_private.h
+    src/resect_sqlite.c
+)
 
 set_target_properties(resect PROPERTIES
     CMAKE_C_STANDARD 99
@@ -66,6 +73,17 @@ target_include_directories(resect
 
 target_link_directories(resect
   PUBLIC "${LIBCLANG_LINK_DIRS}")
+
+target_include_directories(resect_sql_dump
+  SYSTEM BEFORE PUBLIC ${SQLite3_INCLUDE_DIRS}
+  SYSTEM BEFORE PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}"
+  SYSTEM BEFORE PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/src"
+)
+
+target_link_libraries(resect_sql_dump
+  PUBLIC ${SQLite3_LIBRARIES}
+  PUBLIC resect
+)
 
 add_library(resect_clang_static STATIC IMPORTED)
 
@@ -90,7 +108,11 @@ target_link_libraries(resect
 add_executable(resect-test test/test.c)
 target_link_libraries(resect-test PUBLIC resect)
 
-add_executable(resect_dump_to_sqlite src/dump_to_sqlite_cmd.c)
+add_executable(resect_dump_to_sqlite
+    # src/resect_sqlite_private.h
+    # src/resect_sqlite.c
+    src/dump_to_sqlite_cmd.c
+)
 # target_link_libraries(resect_dump_to_sqlite PUBLIC resect)
 target_include_directories(resect_dump_to_sqlite PUBLIC ${SQLite3_INCLUDE_DIRS})
-target_link_libraries(resect_dump_to_sqlite PUBLIC resect ${SQLite3_LIBRARIES})
+target_link_libraries(resect_dump_to_sqlite PUBLIC resect resect_sql_dump ${SQLite3_LIBRARIES})

@@ -38,16 +38,6 @@ struct P_resect_error {
   void *extra_data;
 };
 
-const char* resect_error_strings[] = {
-    "No error",
-    "Received null pointer",
-    "Out of memory",
-    "Invalid argument",
-    "Max recursion depth reached",
-    "(CLANG) Invalid argument",
-    "(CLANG) AST read error"
-};
-
 /*
  * COLLECTION
  */

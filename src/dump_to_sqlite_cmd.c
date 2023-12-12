@@ -133,7 +133,7 @@ int main(int argc, char **argv) {
   printf("LANGUAGE: %d\n", resect_unit_get_language(context));
 
   int rc = ensure_sqlite_db(working_dir, db_name, &db);
-  if(rc != SQLITE_OK || db == NULL) {
+  if(rc != RESECT_OK || db == NULL) {
     fprintf(stderr, "Error! Failed to create sqlite database: RC: %d, DB: %p\n", rc, db);
     exit(-1);
   }

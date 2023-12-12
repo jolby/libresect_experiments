@@ -170,6 +170,16 @@ resect_bool resect_string_equal(resect_string this, resect_string that) {
     return strcmp(this->value, that->value) == 0;
 }
 
+static const char* resect_error_strings[] = {
+    "No error",
+    "Received null pointer",
+    "Out of memory",
+    "Invalid argument",
+    "Max recursion depth reached",
+    "(CLANG) Invalid argument",
+    "(CLANG) AST read error"
+};
+
 resect_error resect_create_error(resect_error_code code,
                                  const char *message,
                                  void *extra_data) {

@@ -1,6 +1,7 @@
 #ifndef RESECT_SQLITE_PRIVATE_H_
 #define RESECT_SQLITE_PRIVATE_H_
 
+#include "sqlite3.h"
 #include "../resect.h"
 #include "resect_types_private.h"
 
