@@ -44,11 +44,11 @@ resect_error_code simple_sql_execute(sqlite3 *db, const char *sql) {
 }
 
 resect_error_code create_resect_decl_insert_statement(sqlite3 *db, sqlite3_stmt **stmt) {
-    const char *sql = "INSERT INTO resect_declarations " \
-      "(kind, resect_id, name, namespace, location, mangled_name, "\
-      "comment, source, access, linkage, is_template, is_partial, is_forward) " \
-      "VALUES "                                                         \
-      "(:kind, :resect_id, :name, :namespace, :location, :mangled_name, " \
+    const char *sql = "INSERT INTO resect_declarations "
+      "(kind, resect_id, name, namespace, location, mangled_name, "
+      "comment, source, access, linkage, is_template, is_partial, is_forward) "
+      "VALUES "
+      "(:kind, :resect_id, :name, :namespace, :location, :mangled_name, "
       ":comment, :source, :access, :linkage, :is_template, :is_partial, :is_forward)";
 
     int rc = sqlite3_prepare_v2(db, sql, -1, stmt, NULL);
@@ -96,9 +96,9 @@ resect_error_code insert_declaration_into_sqlite(resect_decl decl, sqlite3 *db ,
 }
 
 resect_error_code create_resect_type_insert_statement(sqlite3 *db, sqlite3_stmt **stmt) {
-    const char *sql = "INSERT INTO resect_types " \
-      "(kind, name, size, alignment, category, const_qualified, pod, undeclared) " \
-      "VALUES "                                                         \
+    const char *sql = "INSERT INTO resect_types "
+      "(kind, name, size, alignment, category, const_qualified, pod, undeclared) "
+      "VALUES "
       "(:kind, :name, :size, :alignment, :category, :const_qualified, :pod, :undeclared)";
     int rc = sqlite3_prepare_v2(db, sql, -1, stmt, NULL);
     if (rc != SQLITE_OK) {
@@ -137,14 +137,14 @@ resect_error_code insert_type_into_sqlite(resect_type type, sqlite3 *db , sqlite
 
 resect_error_code ensure_resect_runs_table(sqlite3 *db) {
   const char *sql =
-  "CREATE TABLE IF NOT EXISTS resect_runs ("  \
-    "id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT," \
-    "start_time         TEXT," \
-    "end_time           TEXT," \
-    "configuration      JSON," \
-    "arguments          JSON," \
-    "errors             JSON," \
-    "final_results      JSON" \
+  "CREATE TABLE IF NOT EXISTS resect_runs ("
+    "id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,"
+    "start_time         TEXT,"
+    "end_time           TEXT,"
+    "configuration      JSON,"
+    "arguments          JSON,"
+    "errors             JSON,"
+    "final_results      JSON"
     ");";
   return simple_sql_execute(db, sql);
 }
@@ -155,41 +155,41 @@ resect_error_code ensure_resect_runs_table(sqlite3 *db) {
 
 resect_error_code ensure_resect_types_table(sqlite3 *db) {
   const char *sql =
-  "CREATE TABLE IF NOT EXISTS resect_types ("  \
-    "id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT," \
-    "kind                INTEGER," \
-    "name                TEXT," \
-    "size                INTEGER," \
-    "alignment           INTEGER," \
-    "category            INTEGER," \
-    "const_qualified     INTEGER," \
-    "pod                 INTEGER," \
-    "undeclared          INTEGER" \
+  "CREATE TABLE IF NOT EXISTS resect_types ("
+    "id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,"
+    "kind                INTEGER,"
+    "name                TEXT,"
+    "size                INTEGER,"
+    "alignment           INTEGER,"
+    "category            INTEGER,"
+    "const_qualified     INTEGER,"
+    "pod                 INTEGER,"
+    "undeclared          INTEGER"
     ");";
   return simple_sql_execute(db, sql);
 }
 
 resect_error_code ensure_resect_declarations_table(sqlite3 *db) {
-  const char *sql = "CREATE TABLE IF NOT EXISTS resect_declarations ("  \
-    "id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT," \
-    "resect_id           TEXT," \
+  const char *sql = "CREATE TABLE IF NOT EXISTS resect_declarations ("
+    "id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,"
+    "resect_id           TEXT,"
     "resect_type_id      INTEGER,"
     "owning_declaration_id  INTEGER,"
-    "kind                INTEGER," \
-    "namespace           TEXT," \
-    "name                TEXT," \
-    "mangled_name        TEXT," \
-    "location            TEXT," \
-    "comment             TEXT," \
-    "source              TEXT," \
-    "access              INTEGER, " \
-    "linkage             INTEGER," \
-    "inclusion_status    INTEGER," \
-    "is_template         INTEGER," \
-    "is_partial          INTEGER," \
-    "is_forward          INTEGER," \
-    "FOREIGN KEY(resect_type_id) REFERENCES resect_types(id)," \
-    "FOREIGN KEY(owning_declaration_id) REFERENCES resect_declarations(id)" \
+    "kind                INTEGER,"
+    "namespace           TEXT,"
+    "name                TEXT,"
+    "mangled_name        TEXT,"
+    "location            TEXT,"
+    "comment             TEXT,"
+    "source              TEXT,"
+    "access              INTEGER, "
+    "linkage             INTEGER,"
+    "inclusion_status    INTEGER,"
+    "is_template         INTEGER,"
+    "is_partial          INTEGER,"
+    "is_forward          INTEGER,"
+    "FOREIGN KEY(resect_type_id) REFERENCES resect_types(id),"
+    "FOREIGN KEY(owning_declaration_id) REFERENCES resect_declarations(id)"
     ");";
   return simple_sql_execute(db, sql);
 }
