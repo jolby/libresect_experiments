@@ -3,6 +3,7 @@ cmake-*/
 build*/
 llvm-bin/
 libclang-bundle/
+target/
 
 # ide
 .idea/
