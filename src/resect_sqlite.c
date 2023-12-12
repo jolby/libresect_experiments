@@ -17,7 +17,24 @@
   CHECK_BIND(sqlite3_bind_int(stmt, sqlite3_bind_parameter_index((stmt), (name)), (value_expression)), name);
 
 #define BIND_NAMED_TEXT(stmt, name, value_expression) \
-  CHECK_BIND(sqlite3_bind_text(stmt, sqlite3_bind_parameter_index((stmt), (name)), (value_expression), -1, SQLITE_TRANSIENT), name);
+  CHECK_BIND(sqlite3_bind_text(stmt, sqlite3_bind_parameter_index((stmt), (name)), \
+                               (value_expression), -1, SQLITE_TRANSIENT), name);
+
+#define COMMIT_AND_CLEANUP(stmt, db, finalize_stmt, ok_status, err_status) \
+    do { \
+        int rc = sqlite3_step(stmt); \
+        if (rc != SQLITE_DONE) { \
+            printf("Statement execution failed: %s\n", sqlite3_errmsg(db)); \
+            sqlite3_finalize(stmt); \
+            return err_status; \
+        } \
+        if(finalize_stmt) { \
+            sqlite3_finalize(stmt); \
+        } else { \
+            sqlite3_reset(stmt); \
+        } \
+        return ok_status; \
+    } while(0)
 
 //XXX put this in utils??
 void copy_location_string(resect_decl decl, char* buffer, size_t size) {
@@ -60,7 +77,8 @@ resect_error_code create_resect_decl_insert_statement(sqlite3 *db, sqlite3_stmt 
     return RESECT_OK;
 }
 
-resect_error_code insert_declaration_into_sqlite(resect_decl decl, sqlite3 *db , sqlite3_stmt *stmt, resect_bool finalize_stmt) {
+resect_error_code insert_declaration_into_sqlite(resect_decl decl, sqlite3 *db ,
+                                                 sqlite3_stmt *stmt, resect_bool finalize_stmt) {
   char location[512];
   copy_location_string(decl, location, sizeof(location));
 
@@ -78,21 +96,7 @@ resect_error_code insert_declaration_into_sqlite(resect_decl decl, sqlite3 *db ,
   BIND_NAMED_INT(stmt, ":is_template", decl->is_template);
   BIND_NAMED_INT(stmt, ":is_partial", decl->partial);
   BIND_NAMED_INT(stmt, ":is_forward", decl->forward);
-  // Commit the transaction
-  int rc = sqlite3_step(stmt);
-  if (rc != SQLITE_DONE) {
-    // Failed to execute
-    printf("Statement execution failed: %s", sqlite3_errmsg(db));
-    sqlite3_finalize(stmt);
-    return RESECT_ERR_SQLITE_STEP_ERROR;
-  }
-  // Cleanup
-  if(finalize_stmt) {
-    sqlite3_finalize(stmt);
-  } else {
-    sqlite3_reset(stmt);
-  }
-  return RESECT_OK;
+  COMMIT_AND_CLEANUP(stmt, db, finalize_stmt, RESECT_OK, RESECT_ERR_SQLITE_STEP_ERROR);
 }
 
 resect_error_code create_resect_type_insert_statement(sqlite3 *db, sqlite3_stmt **stmt) {
@@ -109,7 +113,8 @@ resect_error_code create_resect_type_insert_statement(sqlite3 *db, sqlite3_stmt 
     return RESECT_OK;
 }
 
-resect_error_code insert_type_into_sqlite(resect_type type, sqlite3 *db , sqlite3_stmt *stmt, resect_bool finalize_stmt) {
+resect_error_code insert_type_into_sqlite(resect_type type, sqlite3 *db ,
+                                          sqlite3_stmt *stmt, resect_bool finalize_stmt) {
   BIND_NAMED_INT(stmt, ":kind", type->kind);
   BIND_NAMED_TEXT(stmt, ":name", resect_string_to_c(type->name));
   BIND_NAMED_INT(stmt, ":size", type->size);
@@ -118,21 +123,7 @@ resect_error_code insert_type_into_sqlite(resect_type type, sqlite3 *db , sqlite
   BIND_NAMED_INT(stmt, ":const_qualified", type->const_qualified);
   BIND_NAMED_INT(stmt, ":pod", type->pod);
   BIND_NAMED_INT(stmt, ":undeclared", type->undeclared);
-  // Commit the transaction
-  int rc = sqlite3_step(stmt);
-  if (rc != SQLITE_DONE) {
-    // Failed to execute
-    printf("Statement execution failed: %s", sqlite3_errmsg(db));
-    sqlite3_finalize(stmt);
-    return RESECT_ERR_SQLITE_STEP_ERROR;
-  }
-  // Cleanup
-  if(finalize_stmt) {
-    sqlite3_finalize(stmt);
-  } else {
-    sqlite3_reset(stmt);
-  }
-  return RESECT_OK;
+  COMMIT_AND_CLEANUP(stmt, db, finalize_stmt, RESECT_OK, RESECT_ERR_SQLITE_STEP_ERROR);
 }
 
 resect_error_code ensure_resect_runs_table(sqlite3 *db) {
@@ -293,4 +284,5 @@ resect_error_code insert_declarations_into_sqlite(resect_collection decls, sqlit
   sqlite3_exec(db, "COMMIT;", NULL, NULL, NULL);
   sqlite3_finalize(decl_stmt);
   resect_iterator_free(decl_iter);
+  return RESECT_OK;
 }

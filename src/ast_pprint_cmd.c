@@ -1,4 +1,6 @@
-#include "ast_pprint_cmd.h"
+#include "../resect.h"
+#include "resect_types_private.h"
+#include "resect_private.h"
 
 
 /*
@@ -14,10 +16,6 @@ void print_location(resect_decl decl);
 resect_translation_unit resect_parse_tu2(const char *filename,
                                          const char *working_dir,
                                          resect_parse_options options);
-int check_file_exists(const char *filename);
-int ensure_directory_exists(const char *dirname);
-int parse_argv_options(resect_parse_options options, char **header_file_out, char **working_dir_out,
-                       int argc, char **argv);
 
 
 void print_record_fields(resect_collection fields) {
