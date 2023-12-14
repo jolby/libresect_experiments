@@ -237,65 +237,19 @@ void _resect_options_toggle_print_diagnostics(resect_parse_options opts, const c
 static const char *resect_short_options = "a:t:b:c:l:s:D:I:";
 
 static struct resect_argv_option_item resect_long_options[] = {
-  {.opt = {.name = "add", .has_arg = optional_argument, .flag = 0, .val = 'a'},
-   .help_text = "Add a fully formatted argument to pass along to clang. Ex: '--add=-I/usr/include'. Can be used multiple times.",
-   .handler = resect_options_add_single_arg},
-  {.opt = {.name = "target", .has_arg = required_argument, .flag = 0, .val = 't'},
-   .help_text = "Set the target triple. Ex: 'x86_64-pc-linux-gnu'.",
-   .handler = resect_options_add_target},
-  {.opt = {.name = "abi", .has_arg = optional_argument, .flag = 0, .val = 'b'},
-   .help_text = "Set the ABI. Ex: 'itanium'.",
-   .handler = resect_options_add_abi},
-  {.opt = {.name = "cpu", .has_arg = optional_argument, .flag = 0, .val = 'c'},
-   .help_text = "Set the CPU. Ex: 'x86_64'.",
-   .handler = resect_options_add_cpu},
-  {.opt = {.name = "arch", .has_arg = optional_argument, .flag = 0, .val = 0},
-   .help_text = "Set the architecture. Ex: 'x86-64'.",
-   .handler = resect_options_add_arch},
-  {.opt = {.name = "intrinsic", .has_arg = optional_argument, .flag = 0, .val = 0},
-   .help_text = "Set the intrinsic. Ex: sse4.2, avx, avx2, etc.",
-   .handler = resect_options_add_intrinsic},
-  {.opt = {.name = "language", .has_arg = optional_argument, .flag = 0, .val = 'l'},
-   .help_text = "Set the language to parse. Defaults to 'c'. Valid values are 'c' and 'c++' and 'objc'.",
-   .handler = resect_options_add_language},
-  {.opt = {.name = "standard", .has_arg = optional_argument, .flag = 0, .val = 's'},
-   .help_text = "Language standard to compile for. Defaults to 'c11' for C and 'c++11' for C++.",
-   .handler = resect_options_add_standard},
-  {.opt = {.name = "single-header", .has_arg = optional_argument, .flag = 0, .val = 0},
-   .help_text = "Parse as a single header. Defaults to false.",
-   .handler = _resect_options_toggle_single_header},
-  {.opt = {.name = "print-diagnostics", .has_arg = optional_argument, .flag = 0, .val = 0},
-   .help_text = "Print diagnostics. Defaults to false.",
-   .handler = _resect_options_toggle_print_diagnostics},
-  {.opt = {.name = "add-defines", .has_arg = optional_argument, .flag = 0, .val = 'D'},
-   .help_text = "Add a define. Ex: '-DDEBUG=1'. Can be used multiple times.",
-   .handler = resect_options_add_single_arg},
-  {.opt = {.name = "include-path", .has_arg = optional_argument, .flag = 0, .val = 'I'},
-   .help_text = "Add an include path. Can be used multiple times.",
-   .handler = resect_options_add_include_path},
-  {.opt = {.name = "system-include-path", .has_arg = optional_argument, .flag = 0, .val = 0},
-   .help_text = "Add a system include path. Can be used multiple times.",
-   .handler = resect_options_add_system_include_path},
-  {.opt = {.name = "include-source", .has_arg = optional_argument, .flag = 0, .val = 0},
-   .help_text = "Include a source file for parsing with regex. Can be used multiple times.",
-    .handler = resect_options_include_source},
-  {.opt = {.name = "exclude-source", .has_arg = optional_argument, .flag = 0, .val = 0},
-   .help_text = "Exclude a source file from parsing with regex. Can be used multiple times.",
-   .handler = resect_options_exclude_source},
-  {.opt = {.name = "include-definition", .has_arg = optional_argument, .flag = 0, .val = 0},
-   .help_text = "Include a definition from parsing with regex. Can be used multiple times.",
-   .handler = resect_options_include_definition},
-  {.opt = {.name = "exclude-definition", .has_arg = optional_argument, .flag = 0, .val = 0},
-   .help_text = "Exclude a definition from parsing with regex. Can be used multiple times.",
-   .handler = resect_options_exclude_definition},
-  {.opt = {.name = "enforce-source", .has_arg = optional_argument, .flag = 0, .val = 0},
-   .help_text = "Enforce that a source file matching regex is allowed to be included in the translation unit. Can be used multiple times.",
-   .handler = resect_options_enforce_source},
-  {.opt = {.name = "enforce-definition", .has_arg = optional_argument, .flag = 0, .val = 0},
-   .help_text = "Enforce that a definition file matching regex is allowed to be included in the translation unit. Can be used multiple times.",
-   .handler = resect_options_enforce_definition},
-  {.opt = {.name = 0, .has_arg = 0, .flag = 0, .val = 0},
-   .help_text = 0} // Needs to end with a fully zero-filled struct
+  //x-macro for defining the default long options for resect
+#define OPTION(NAME, HAS_ARG, VAL, HELP_TEXT, HANDLER) \
+    { \
+      .opt = {.name = NAME, .has_arg = HAS_ARG, .flag = 0, .val = VAL}, \
+      .help_text = HELP_TEXT, \
+      .handler = HANDLER\
+    },
+#include "resect_long_options_def.h"
+     RESECT_DEFAULT_OPTIONS
+    // End with a fully zero-filled struct
+    {.opt = {.name = 0, .has_arg = 0, .flag = 0, .val = 0}, .help_text = 0}
+// Clean up the x-macro to prevent it from affecting other code
+#undef OPTION
 };
 
 void print_usage() {
