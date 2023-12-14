@@ -39,6 +39,14 @@ void resect_string_free(resect_string string);
 const char *resect_string_to_c(resect_string string);
 
 /*
+ * RETURN TYPE/ERROR CODES/MESSAGES
+ */
+const char* resect_error_to_c_string(resect_error_code code);
+resect_string resect_error_to_resect_string(resect_error_code code);
+
+
+
+/*
  * COLLECTION
  */
 resect_collection resect_collection_create();

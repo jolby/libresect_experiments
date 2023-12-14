@@ -170,15 +170,70 @@ resect_bool resect_string_equal(resect_string this, resect_string that) {
     return strcmp(this->value, that->value) == 0;
 }
 
-static const char* resect_error_strings[] = {
-    "No error",
-    "Received null pointer",
-    "Out of memory",
-    "Invalid argument",
-    "Max recursion depth reached",
-    "(CLANG) Invalid argument",
-    "(CLANG) AST read error"
-};
+/*
+ * RETURN TYPE/ERROR CODES/MESSAGES
+ */
+
+/* Generate the resect_error_code string table */
+static char *resect_error_strings[] = { RESECT_ERROR_CODES(AS_STR) };
+
+const char* resect_error_to_c_string(resect_error_code code) {
+    return resect_error_strings[code];
+}
+
+resect_string resect_error_to_resect_string(resect_error_code code) {
+    return resect_string_from_c(resect_error_strings[code]);
+}
+
+/*
+ * DECL KIND / ACCESS SPECIFIER / TYPE KIND enums and string tables
+ */
+/* Generate the resect_decl_kind string table */
+static char *resect_decl_kind_string[] = { RESECT_DECL_KIND_CODES(AS_STR) };
+
+/* Generate the resect_access_specifier string table */
+static char *resect_kind_access_specifier_string[] = { RESECT_ACCESS_SPECIFIER_CODES(AS_STR) };
+
+/* Generate the resect_type_kind string table */
+static char *resect_type_kind_string[] = { RESECT_TYPE_KIND_CODES(AS_STR) };
+
+
+/* predicates */
+static inline int is_resect_decl_kind_p(resect_decl_kind code) {
+    return code >= 0 && code < NUM_RESECT_DECL_KIND_CODES;
+}
+static inline int is_resect_access_specifier_p(resect_access_specifier code) {
+    return code >= 0 && code < NUM_RESECT_ACCESS_SPECIFIER_CODES;
+}
+static inline int is_resect_type_kind_p(resect_type_kind code) {
+    return code >= 0 && code < NUM_RESECT_TYPE_KIND_CODES;
+}
+
+/* to c string converters */
+const char* resect_decl_kind_to_c_string(resect_decl_kind code) {
+    if(!is_resect_decl_kind_p(code)) return "Invalid decl kind code";
+    return resect_decl_kind_string[code];
+}
+const char* resect_access_specifier_to_c_string(resect_access_specifier code) {
+    if(!is_resect_access_specifier_p(code)) return "Invalid access specifier code";
+    return resect_kind_access_specifier_string[code];
+}
+const char* resect_type_kind_to_c_string(resect_type_kind code) {
+    if(!is_resect_type_kind_p(code)) return "Invalid type kind code";
+    return resect_type_kind_string[code];
+}
+
+/* to resect string converters */
+resect_string resect_decl_kind_to_resect_string(resect_decl_kind code) {
+    return resect_string_from_c(resect_decl_kind_to_c_string(code));
+}
+resect_string resect_access_specifier_to_resect_string(resect_access_specifier code) {
+    return resect_string_from_c(resect_access_specifier_to_c_string(code));
+}
+resect_string resect_type_kind_to_resect_string(resect_type_kind code) {
+    return resect_string_from_c(resect_type_kind_to_c_string(code));
+}
+
 
 resect_error resect_create_error(resect_error_code code,
                                  const char *message,
@@ -203,6 +258,8 @@ resect_error_code resect_free_error(resect_error error) {
     free(error);
     return code;
 }
+
+
 
 /*
  * COLLECTION
