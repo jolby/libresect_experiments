@@ -79,12 +79,12 @@ void resect_options_exclude_source(resect_parse_options opts, const char *name) 
 }
 
 void resect_options_enforce_definition(resect_parse_options opts, const char *name) {
-    fprintf(stdout, "XXX ADD ENFORCE DEFINITION: %s\n", name);
+    /* fprintf(stdout, "XXX ADD ENFORCE DEFINITION: %s\n", name); */
     resect_collection_add(opts->enforced_definition_patterns, resect_string_from_c(name));
 }
 
 void resect_options_enforce_source(resect_parse_options opts, const char *name) {
-    fprintf(stdout, "XXX ADD ENFORCE SOURCE: %s\n", name);
+    /* fprintf(stdout, "XXX ADD ENFORCE SOURCE: %s\n", name); */
     resect_collection_add(opts->enforced_source_patterns, resect_string_from_c(name));
 }
 
@@ -154,6 +154,29 @@ void resect_options_add_target(resect_parse_options opts, const char *target) {
     resect_options_add_concat(opts, "--target=", target);
 }
 
+void resect_options_add_intrinsic(resect_parse_options opts, const char *intrinsic) {
+  if(strcmp(intrinsic, "neon") == 0) {
+    resect_options_add_concat(opts, "-mfpu=", intrinsic);
+  } else if(strcmp(intrinsic, "sse") == 0) {
+    resect_options_add_concat(opts, "-m", intrinsic);
+  } else if(strcmp(intrinsic, "sse2") == 0) {
+    resect_options_add_concat(opts, "-m", intrinsic);
+  } else if(strcmp(intrinsic, "sse3") == 0) {
+    resect_options_add_concat(opts, "-m", intrinsic);
+  } else if(strcmp(intrinsic, "sse4.1") == 0) {
+    resect_options_add_concat(opts, "-m", intrinsic);
+  } else if(strcmp(intrinsic, "sse4.2") == 0) {
+    resect_options_add_concat(opts, "-m", intrinsic);
+  } else if(strcmp(intrinsic, "avx") == 0) {
+    resect_options_add_concat(opts, "-m", intrinsic);
+  } else if(strcmp(intrinsic, "avx2") == 0) {
+    resect_options_add_concat(opts, "-m", intrinsic);
+  } else {
+    fprintf(stderr, "Error! Unknown intrinsic: %s. NOT setting option.\n", intrinsic);
+  }
+
+}
+
 void resect_options_intrinsic(resect_parse_options opts, resect_option_intrinsic intrinsic) {
     if (intrinsic == RESECT_OPTION_INTRINSICS_NEON) {
         resect_options_add_concat(opts, "-mfpu=neon", "");
@@ -189,14 +212,24 @@ void resect_options_intrinsic(resect_parse_options opts, resect_option_intrinsic
     resect_options_add_concat(opts, "-m", intrinsic_name);
 }
 
+
 void resect_options_single_header(resect_parse_options opts) {
     opts->single = resect_true;
 }
 
-void resect_options_print_diagnostics(resect_parse_options opts) {
-    opts->diagnostics = resect_true;
+void _resect_options_toggle_single_header(resect_parse_options opts, const char *unused) {
+  printf("XXX TOGGLE SINGLE HEADER: %s \n", unused);
+  opts->single = resect_true;
 }
 
+void resect_options_print_diagnostics(resect_parse_options opts) {
+  opts->diagnostics = resect_true;
+}
+
+void _resect_options_toggle_print_diagnostics(resect_parse_options opts, const char *unused) {
+  printf("XXX TOGGLE PRINT DIAGNOSTICS: %s \n", unused);
+  opts->diagnostics = resect_true;
+}
 
 /*
  * ARGV OPTIONS
@@ -219,21 +252,21 @@ static struct resect_argv_option_item resect_long_options[] = {
   {.opt = {.name = "arch", .has_arg = optional_argument, .flag = 0, .val = 0},
    .help_text = "Set the architecture. Ex: 'x86-64'.",
    .handler = resect_options_add_arch},
-  /* {.opt = {.name = "intrinsic", .has_arg = optional_argument, .flag = 0, .val = 0}, */
-  /*  .help_text = "Set the intrinsic. Ex: sse4.2, avx, avx2, etc.", */
-  /*  .handler = resect_options_intrinsic}, */
+  {.opt = {.name = "intrinsic", .has_arg = optional_argument, .flag = 0, .val = 0},
+   .help_text = "Set the intrinsic. Ex: sse4.2, avx, avx2, etc.",
+   .handler = resect_options_add_intrinsic},
   {.opt = {.name = "language", .has_arg = optional_argument, .flag = 0, .val = 'l'},
    .help_text = "Set the language to parse. Defaults to 'c'. Valid values are 'c' and 'c++' and 'objc'.",
    .handler = resect_options_add_language},
   {.opt = {.name = "standard", .has_arg = optional_argument, .flag = 0, .val = 's'},
    .help_text = "Language standard to compile for. Defaults to 'c11' for C and 'c++11' for C++.",
    .handler = resect_options_add_standard},
-  /* {.opt = {.name = "single-header", .has_arg = optional_argument, .flag = 0, .val = 0}, */
-  /*  .help_text = "Parse as a single header. Defaults to false.", */
-  /*  .handler = resect_options_single_header}, */
-  /* {.opt = {.name = "print-diagnostics", .has_arg = optional_argument, .flag = 0, .val = 0}, */
-  /*  .help_text = "Print diagnostics. Defaults to false.", */
-  /*  .handler = resect_options_print_diagnostics}, */
+  {.opt = {.name = "single-header", .has_arg = optional_argument, .flag = 0, .val = 0},
+   .help_text = "Parse as a single header. Defaults to false.",
+   .handler = _resect_options_toggle_single_header},
+  {.opt = {.name = "print-diagnostics", .has_arg = optional_argument, .flag = 0, .val = 0},
+   .help_text = "Print diagnostics. Defaults to false.",
+   .handler = _resect_options_toggle_print_diagnostics},
   {.opt = {.name = "add-defines", .has_arg = optional_argument, .flag = 0, .val = 'D'},
    .help_text = "Add a define. Ex: '-DDEBUG=1'. Can be used multiple times.",
    .handler = resect_options_add_single_arg},
@@ -315,7 +348,6 @@ resect_error_code parse_argv_options(resect_parse_options options, char **header
       resect_long_options[option_index].handler(options, optarg);
     } else {
       printf("Unknown option: %c\n", c);
-
       print_usage();
       return RESECT_ERR_INVALID_ARGUMENT;
     }

@@ -5,6 +5,7 @@
 
 #include <stdlib.h>
 #include <getopt.h>
+#include <stdbool.h>
 #include "../resect.h"
 #include <clang-c/Index.h>
 
@@ -178,6 +179,7 @@ typedef void (*resect_translation_unit_handler)(resect_translation_unit unit);
 struct P_resect_invocation {
   int argc;
   char **argv;
+  struct resect_argv_option_item* argv_option_items;
   resect_parse_options options;
   resect_translation_unit result;
   resect_collection errors;
@@ -194,6 +196,15 @@ static resect_invocation THE_INVOCATION = NULL;
  * SEMANTIC TYPES
  * =================================================================================================
  */
+
+/*
+ * LOCATION
+ */
+struct P_resect_location {
+    unsigned int line;
+    unsigned int column;
+    resect_string name;
+};
 
 /*
  * DECLARATION
@@ -242,6 +253,13 @@ typedef struct {
 struct P_function_class_mangling_result {
     CXCursor cursor;
     resect_string mangling;
+};
+
+/*
+ * DECL CONTEXT
+ */
+struct P_resect_decl_context {
+    bool exclusion_detected;
 };
 
 /*
@@ -340,6 +358,15 @@ typedef struct P_resect_macro_data {
     resect_bool is_function_like;
 } *resect_macro_data;
 
+/*
+ * TEMPLATE ARGUMENT
+ */
+struct P_resect_template_argument {
+    int position;
+    resect_template_argument_kind kind;
+    resect_type type;
+    long long int value;
+};
 
 /*
  * TEMPLATE PARAMETER
@@ -356,6 +383,8 @@ typedef struct P_resect_field_data {
     resect_bool bitfield;
     long long width;
     long long offset;
+    /* resect_type field_type; */
+
 } *resect_field_data;
 
 typedef struct P_resect_record_data {

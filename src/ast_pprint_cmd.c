@@ -12,6 +12,7 @@ void print_parameters(resect_decl decl);
 void print_method_parameters(resect_decl decl);
 void print_methods(resect_decl decl);
 void print_template_parameters(resect_decl decl);
+void print_record_struct(resect_decl decl);
 void print_location(resect_decl decl);
 resect_translation_unit resect_parse_tu2(const char *filename,
                                          const char *working_dir,
@@ -22,7 +23,16 @@ void print_record_fields(resect_collection fields) {
     resect_iterator field_iter = resect_collection_iterator(fields);
     while (resect_iterator_next(field_iter)) {
         resect_decl field = resect_iterator_value(field_iter);
-        printf(" FIELD: %s {offset: %lld} \n", resect_decl_get_name(field), resect_field_get_offset(field));
+        resect_type field_type = resect_decl_get_type(field);
+        printf(" FIELD:      %s {offset: %lld, width(bits): %lld} \n"
+               " FIELD TYPE: %s {sizeof: %lld, alignof:     %lld} \n",
+               resect_decl_get_name(field),
+               resect_field_get_offset(field),
+               resect_field_get_width(field),
+               resect_type_get_name(field_type),
+               resect_type_sizeof(field_type),
+               resect_type_alignof(field_type)
+               );
     }
     resect_iterator_free(field_iter);
 }
@@ -87,6 +97,16 @@ void print_template_parameters(resect_decl decl) {
     resect_iterator_free(param_iter);
 }
 
+void print_record_struct(resect_decl decl) {
+    printf("STRUCT: %s::%s [%d]\n",
+           resect_decl_get_namespace(decl),
+           resect_decl_get_name(decl),
+           resect_decl_get_access_specifier(decl));
+    print_location(decl);
+    print_record_fields(resect_record_fields(decl));
+    print_methods(decl);
+}
+
 void print_location(resect_decl decl) {
     resect_location loc = resect_decl_get_location(decl);
     printf("  LOCATION: %s:%d\n",
@@ -101,13 +121,14 @@ int print_declarations(resect_collection decls) {
 
     switch (resect_decl_get_kind(decl)) {
     case RESECT_DECL_KIND_STRUCT:
-      printf("STRUCT: %s::%s [%d]\n",
-             resect_decl_get_namespace(decl),
-             resect_decl_get_name(decl),
-             resect_decl_get_access_specifier(decl));
-      print_location(decl);
-      print_record_fields(resect_record_fields(decl));
-      print_methods(decl);
+      print_record_struct(decl);
+      /* printf("STRUCT: %s::%s [%d]\n", */
+      /*        resect_decl_get_namespace(decl), */
+      /*        resect_decl_get_name(decl), */
+      /*        resect_decl_get_access_specifier(decl)); */
+      /* print_location(decl); */
+      /* print_record_fields(resect_record_fields(decl)); */
+      /* print_methods(decl); */
       break;
     case RESECT_DECL_KIND_UNION:
       printf("UNION: %s::%s\n",
@@ -164,4 +185,41 @@ int print_declarations(resect_collection decls) {
     print_template_parameters(decl);
   }
   resect_iterator_free(decl_iter);
+}
+
+
+int main(int argc, char **argv) {
+  char *header_file;
+  char *working_dir;
+
+  resect_parse_options options = resect_options_create();
+  if(parse_argv_options(options, &header_file, &working_dir, argc, argv) != RESECT_OK) {
+    fprintf(stderr, "Error! Failed to parse command line options.\n");
+    exit(-1);
+  }
+
+  if((check_file_exists(header_file) != 0) ||
+     (ensure_directory_exists(working_dir) != 0)) {
+    exit(-1);
+  }
+  /* resect_options_print_diagnostics(options); */
+  /* resect_options_single_header(options); */
+
+  printf("ast_pprint ===> Parsing %s. Using %s as root directory for saved artifacts.\n", header_file, working_dir);
+
+  resect_translation_unit context = resect_parse_tu2(header_file, working_dir, options);
+  if(context == NULL) {
+    fprintf(stderr, "Error! Failed to parse translation unit.\n");
+    exit(-1);
+  }
+
+  resect_options_free(options);
+
+  printf("LANGUAGE: %d\n", resect_unit_get_language(context));
+
+  resect_collection decls = resect_unit_declarations(context);
+  print_declarations(decls);
+  resect_free(context);
+
+  return RESECT_OK;
 }

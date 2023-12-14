@@ -7,15 +7,6 @@
 
 #include <clang-c/Index.h>
 
-/*
- * LOCATION
- */
-struct P_resect_location {
-    unsigned int line;
-    unsigned int column;
-    resect_string name;
-};
-
 unsigned int resect_location_line(resect_location location) {
     return location->line;
 }
@@ -68,13 +59,6 @@ void resect_location_free(resect_location location) {
     free(location);
 }
 
-/*
- * DECL CONTEXT
- */
-struct P_resect_decl_context {
-    bool exclusion_detected;
-};
-
 void resect_register_exclusion(resect_translation_context translation_context) {
     struct P_resect_decl_context *context = resect_context_current_state(translation_context);
     if (context != NULL) {
@@ -99,17 +83,6 @@ void resect_reset_registered_exclusion(resect_translation_context translation_co
 
     context->exclusion_detected = false;
 }
-
-/*
- * TEMPLATE ARGUMENT
- */
-struct P_resect_template_argument {
-    int position;
-    resect_template_argument_kind kind;
-    resect_type type;
-    long long int value;
-};
-
 
 resect_template_argument_kind convert_template_argument_kind(enum CXTemplateArgumentKind kind) {
     switch (kind) {
@@ -715,26 +688,6 @@ void resect_decl_init_rest_from_cursor(resect_decl decl,
     decl->data = NULL;
 }
 
-void resect_record_init(resect_translation_context context, resect_decl decl, CXCursor cursor);
-
-void resect_enum_init(resect_translation_context context, resect_decl decl, CXCursor cursor);
-
-void resect_enum_constant_init(resect_translation_context context, resect_decl decl, CXCursor cursor);
-
-void resect_function_init(resect_translation_context context, resect_decl decl, CXCursor cursor);
-
-void resect_variable_init(resect_translation_context context, resect_decl decl, CXCursor cursor);
-
-void resect_typedef_init(resect_translation_context context, resect_decl decl, CXCursor cursor);
-
-void resect_field_init(resect_translation_context context, resect_decl decl, CXCursor cursor);
-
-void resect_method_init(resect_translation_context context, resect_decl decl, CXCursor cursor);
-
-void resect_macro_init(resect_translation_context context, resect_decl decl, CXCursor cursor);
-
-void resect_template_parameter_init(resect_translation_context context, resect_decl decl, CXCursor cursor);
-
 resect_language convert_language(enum CXLanguageKind language) {
     switch (language) {
         case CXLanguage_C:
@@ -1125,6 +1078,12 @@ long long resect_field_get_width(resect_decl field_decl) {
     return data->width;
 }
 
+/* resect_type resect_field_get_type(resect_decl field_decl) { */
+/*     assert(field_decl->kind == RESECT_DECL_KIND_FIELD); */
+/*     resect_field_data data = field_decl->data; */
+/*     return data->field_type; */
+/* } */
+
 void resect_field_data_free(void *data, resect_set deallocated) {
     resect_field_data field = data;
     if (!resect_set_add(deallocated, field)) {
@@ -1143,6 +1102,7 @@ void resect_field_init(resect_translation_context context, resect_decl decl, CXC
     data->offset = filter_valid_value(clang_Cursor_getOffsetOfField(cursor));
     data->bitfield = clang_Cursor_isBitField(cursor) != 0 ? resect_true : resect_false;
     data->width = clang_getFieldDeclBitWidth(cursor);
+    /* data->field_type = resect_type_create(context, clang_getCursorType(cursor)); */
 
     decl->data_deallocator = resect_field_data_free;
     decl->data = data;

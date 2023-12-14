@@ -194,6 +194,26 @@ void resect_reset_registered_exclusion(resect_translation_context translation_co
 
 bool resect_is_exclusion_detected(resect_translation_context translation_context);
 
+void resect_record_init(resect_translation_context context, resect_decl decl, CXCursor cursor);
+
+void resect_enum_init(resect_translation_context context, resect_decl decl, CXCursor cursor);
+
+void resect_enum_constant_init(resect_translation_context context, resect_decl decl, CXCursor cursor);
+
+void resect_function_init(resect_translation_context context, resect_decl decl, CXCursor cursor);
+
+void resect_variable_init(resect_translation_context context, resect_decl decl, CXCursor cursor);
+
+void resect_typedef_init(resect_translation_context context, resect_decl decl, CXCursor cursor);
+
+void resect_field_init(resect_translation_context context, resect_decl decl, CXCursor cursor);
+
+void resect_method_init(resect_translation_context context, resect_decl decl, CXCursor cursor);
+
+void resect_macro_init(resect_translation_context context, resect_decl decl, CXCursor cursor);
+
+void resect_template_parameter_init(resect_translation_context context, resect_decl decl, CXCursor cursor);
+
 /*
  * DECLARATION VISITORS
 */
@@ -253,10 +273,17 @@ resect_collection resect_options_get_enforced_definitions(resect_parse_options o
 
 resect_collection resect_options_get_enforced_sources(resect_parse_options opts);
 
+resect_error_code parse_argv_options(resect_parse_options options,
+                                     char **header_file_out, char **working_dir_out,
+                                     int argc, char **argv);
+
 /*
  * INVOCATION
  */
 resect_invocation resect_invocation_create(resect_parse_options options,
                                            resect_error_handler error_handler);
 
+resect_translation_unit resect_parse_tu2(const char *filename,
+                                         const char *working_dir,
+                                         resect_parse_options options);
 #endif //RESECT_PRIVATE_H
