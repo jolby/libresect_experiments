@@ -108,9 +108,10 @@ target_link_libraries(resect
 add_executable(resect-test test/test.c)
 target_link_libraries(resect-test PUBLIC resect)
 
+add_executable(ast_pprint src/ast_pprint_cmd.c)
+target_link_libraries(ast_pprint PUBLIC resect)
+
 add_executable(resect_dump_to_sqlite
-    # src/resect_sqlite_private.h
-    # src/resect_sqlite.c
     src/dump_to_sqlite_cmd.c
 )
 # target_link_libraries(resect_dump_to_sqlite PUBLIC resect)

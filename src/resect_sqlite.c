@@ -185,6 +185,31 @@ resect_error_code ensure_resect_declarations_table(sqlite3 *db) {
   return simple_sql_execute(db, sql);
 }
 
+resect_error_code ensure_resect_records_table(sqlite3 *db) {
+  const char *sql =
+  "CREATE TABLE IF NOT EXISTS resect_records ("
+    "id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,"
+    "abstract            INTEGER,"
+    "fields              TEXT,"     // foreign key to the resect_field_data table
+    "methods             TEXT,"     // assuming methods and parents are also foreign keys
+    "parents             TEXT"      // to other tables
+    ");";
+  return simple_sql_execute(db, sql);
+}
+
+resect_error_code ensure_resect_fields_table(sqlite3 *db) {
+  const char *sql =
+  "CREATE TABLE IF NOT EXISTS resect_fields ("
+    "id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,"
+    "record_id           INTEGER,"   // foreign key to the resect_record_data table
+    "bitfield            INTEGER,"
+    "width               INTEGER,"
+    "offset              INTEGER"
+    "FOREIGN KEY(record_id) REFERENCES resect_records(id),"
+    ");";
+  return simple_sql_execute(db, sql);
+}
+
 resect_error_code ensure_sqlite_tables(sqlite3 *db) {
   if(db == NULL) {
     fprintf(stderr, "Error! Database is NULL.\n");
