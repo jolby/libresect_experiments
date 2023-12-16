@@ -383,8 +383,6 @@ typedef struct P_resect_field_data {
     resect_bool bitfield;
     long long width;
     long long offset;
-    /* resect_type field_type; */
-
 } *resect_field_data;
 
 typedef struct P_resect_record_data {

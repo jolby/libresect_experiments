@@ -60,6 +60,17 @@ resect_error_code simple_sql_execute(sqlite3 *db, const char *sql) {
   return RESECT_OK;
 }
 
+resect_error_code create_resect_insert_statement(sqlite3 *db, sqlite3_stmt **stmt, const char *sql) {
+    int rc = sqlite3_prepare_v2(db, sql, -1, stmt, NULL);
+    if (rc != SQLITE_OK) {
+        fprintf(stderr, "Unable to prepare statement. Error Message: %s\n",
+                sqlite3_errmsg(db));
+        return RESECT_ERR_SQLITE_PREPARE_ERROR;
+    }
+    return RESECT_OK;
+}
+
+
 resect_error_code create_resect_decl_insert_statement(sqlite3 *db, sqlite3_stmt **stmt) {
     const char *sql = "INSERT INTO resect_declarations "
       "(kind, resect_id, name, namespace, location, mangled_name, "
@@ -68,13 +79,7 @@ resect_error_code create_resect_decl_insert_statement(sqlite3 *db, sqlite3_stmt 
       "(:kind, :resect_id, :name, :namespace, :location, :mangled_name, "
       ":comment, :source, :access, :linkage, :is_template, :is_partial, :is_forward)";
 
-    int rc = sqlite3_prepare_v2(db, sql, -1, stmt, NULL);
-    if (rc != SQLITE_OK) {
-        fprintf(stderr, "Unable to prepare statement. Error Message: %s\n",
-                sqlite3_errmsg(db));
-        return RESECT_ERR_SQLITE_PREPARE_ERROR;
-    }
-    return RESECT_OK;
+    return create_resect_insert_statement(db, stmt, sql);
 }
 
 resect_error_code insert_declaration_into_sqlite(resect_decl decl, sqlite3 *db ,
@@ -104,13 +109,7 @@ resect_error_code create_resect_type_insert_statement(sqlite3 *db, sqlite3_stmt 
       "(kind, name, size, alignment, category, const_qualified, pod, undeclared) "
       "VALUES "
       "(:kind, :name, :size, :alignment, :category, :const_qualified, :pod, :undeclared)";
-    int rc = sqlite3_prepare_v2(db, sql, -1, stmt, NULL);
-    if (rc != SQLITE_OK) {
-        fprintf(stderr, "Unable to prepare statement. Error Message: %s\n",
-                sqlite3_errmsg(db));
-        return RESECT_ERR_SQLITE_PREPARE_ERROR;
-    }
-    return RESECT_OK;
+    return create_resect_insert_statement(db, stmt, sql);
 }
 
 resect_error_code insert_type_into_sqlite(resect_type type, sqlite3 *db ,
@@ -199,17 +198,56 @@ resect_error_code ensure_resect_records_table(sqlite3 *db) {
 
 resect_error_code ensure_resect_fields_table(sqlite3 *db) {
   const char *sql =
-  "CREATE TABLE IF NOT EXISTS resect_fields ("
+    "CREATE TABLE IF NOT EXISTS resect_fields ("
     "id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,"
-    "record_id           INTEGER,"   // foreign key to the resect_record_data table
-    "bitfield            INTEGER,"
-    "width               INTEGER,"
-    "offset              INTEGER"
-    "FOREIGN KEY(record_id) REFERENCES resect_records(id),"
+    "resect_declaration_id INTEGER,"
+    "resect_type_id INTEGER,"
+    "bitfield INTEGER,"
+    "width INTEGER,"
+    "offset INTEGER,"
+    "FOREIGN KEY(resect_declaration_id) REFERENCES resect_declarations(id),"
+    "FOREIGN KEY(resect_type_id) REFERENCES resect_types(id)"
+    ");";
+    return simple_sql_execute(db, sql);
+}
+
+resect_error_code ensure_resect_functions_table (sqlite3 *db) {
+  const char *sql = "CREATE TABLE IF NOT EXISTS resect_functions ("
+    "id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,"
+    "resect_declaration_id INTEGER,"
+    "resect_type_id INTEGER,"
+    "variadic INTEGER,"
+    "storage_class INTEGER,"
+    "parameters TEXT,"
+    "calling_convention INTEGER,"
+    "result_type INTEGER,"
+    "inlined INTEGER,"
+    "FOREIGN KEY(resect_declaration_id) REFERENCES resect_declarations(id),"
+    "FOREIGN KEY(resect_type_id) REFERENCES resect_types(id)"
     ");";
   return simple_sql_execute(db, sql);
 }
 
+resect_error_code ensure_resect_methods_table (sqlite3 *db) {
+  const char *sql = "CREATE TABLE IF NOT EXISTS resect_methods ("
+    "id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,"
+    "resect_declaration_id INTEGER,"
+    "resect_type_id INTEGER,"
+    "variadic INTEGER,"
+    "storage_class INTEGER,"
+    "parameters TEXT,"
+    "calling_convention INTEGER,"
+    "result_type_id INTEGER,"
+    "inlined INTEGER,"
+    "pure_virtual INTEGER"
+    "virtual INTEGER"
+    "non_mutating INTEGER"
+    "FOREIGN KEY(resect_declaration_id) REFERENCES resect_declarations(id),"
+    "FOREIGN KEY(resect_type_id) REFERENCES resect_types(id)"
+    "FOREIGN KEY(result_type_id) REFERENCES resect_types(id)"
+    ");";
+  return simple_sql_execute(db, sql);
+}
 resect_error_code ensure_sqlite_tables(sqlite3 *db) {
   if(db == NULL) {
     fprintf(stderr, "Error! Database is NULL.\n");
