@@ -177,6 +177,9 @@ resect_bool resect_string_equal(resect_string this, resect_string that) {
 /* Generate the resect_error_code string table */
 static char *resect_error_strings[] = { RESECT_ERROR_CODES(AS_STR) };
 
+static inline int is_resect_error_code_p(resect_error_code code) {
+    return code >= 0 && code < NUM_RESECT_ERROR_CODES;
+}
 const char* resect_error_to_c_string(resect_error_code code) {
     return resect_error_strings[code];
 }

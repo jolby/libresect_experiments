@@ -168,7 +168,7 @@ int print_declarations(resect_collection decls) {
       print_location(decl);
       break;
     case RESECT_DECL_KIND_CLASS:
-      printf("CLASS: %s::%s [%lld] (%s)\n",
+      printf("CLASS: %s::%s size:[%lld] (%s)\n",
              resect_decl_get_namespace(decl),
              resect_decl_get_name(decl),
              resect_type_sizeof(resect_decl_get_type(decl)),

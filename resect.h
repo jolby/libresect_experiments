@@ -24,7 +24,46 @@ typedef int resect_bool;
 /* x-macro constructors for error and type
    enums and string tables */
 #define AS_BARE(a) a ,
+/* For non-contiguous enums */
+#define AS_BARE_ASSIGN(a,b) a = b ,
 #define AS_STR(a) #a ,
+#define AS_PAIR(a, b) {b, #a},
+
+/* For simple contiguous enums */
+#define DEF_ENUM_DECL(NAME, ENUMS)             \
+    typedef enum { ENUMS(AS_BARE) } NAME; \
+    static inline int is_ ## NAME ## _p(NAME val); \
+    static inline const char* NAME ## _to_string(NAME val); \
+    static inline NAME string_to_ ## NAME(const char* str);
+
+/* For non-contiguous enums */
+#define DEF_ENUM_ASSIGN_DECL(NAME, ENUMS)             \
+    typedef enum { ENUMS(AS_BARE_ASSIGN) } NAME; \
+    static inline int is_ ## NAME ## _p(NAME val); \
+    static inline const char* NAME ## _to_string(NAME val); \
+    static inline NAME string_to_ ## NAME(const char* str);
+
+#define DEF_ENUM_IMPL(NAME, ENUMS)             \
+    typedef struct { int code; const char *NAME; } NAME ## _map; \
+    static const NAME ## _ENUMS NAME ## _mapping[] = { ENUMS(AS_PAIR) }; \
+    static inline int is_ ## NAME ##_p(NAME val) { \
+        for (size_t i = 0; i < (sizeof(NAME ## _mapping)/sizeof(NAME ## _ENUMS)); ++i) { \
+            if (NAME ## _mapping[i].code == val) return 1; \
+        } \
+        return 0; \
+    } \
+    static inline const char* NAME ## _to_string(NAME val) { \
+        for (size_t i = 0; i < (sizeof(NAME ## _mapping)/sizeof(NAME ## _ENUMS)); ++i) { \
+            if (NAME ## _mapping[i].code == val) return NAME ## _mapping[i].NAME; \
+        } \
+        return "Unknown"; \
+    } \
+    static inline NAME string_to_ ## NAME(const char* str) { \
+        for (size_t i = 0; i < (sizeof(NAME ## _mapping)/sizeof(NAME ## _ENUMS)); ++i) { \
+            if (strcmp(NAME ## _mapping[i].NAME, str) == 0) return NAME ## _mapping[i].code; \
+        } \
+        return 0; /* Decide value for error case */ \
+    }
 
 #define RESECT_ERROR_CODES(_) \
     _(RESECT_OK) \
@@ -43,7 +82,9 @@ typedef int resect_bool;
     _(RESECT_ERR_SQLITE_STEP_ERROR) \
     _(RESECT_ERR_SQLITE_INSERT_ERROR) \
     _(CLANG_ERR_INVALID_ARGUMENT) \
-    _(CLANG_ERR_AST_READ_ERROR)
+    _(CLANG_ERR_AST_READ_ERROR) \
+    _(NUM_RESECT_ERROR_CODES)
+
 
 /* Generate the enum */
 typedef enum {
@@ -87,62 +128,62 @@ typedef enum {
     RESECT_ACCESS_SPECIFIER_CODES(AS_BARE)
 } resect_access_specifier;
 
-#define RESECT_TYPE_KIND_CODES(_)               \
-    _(RESECT_TYPE_KIND_UNKNOWN) \
-    _(RESECT_TYPE_KIND_VOID) \
-    _(RESECT_TYPE_KIND_BOOL) \
-    _(RESECT_TYPE_KIND_CHAR_U) \
-    _(RESECT_TYPE_KIND_UCHAR) \
-    _(RESECT_TYPE_KIND_CHAR16) \
-    _(RESECT_TYPE_KIND_CHAR32) \
-    _(RESECT_TYPE_KIND_USHORT) \
-    _(RESECT_TYPE_KIND_UINT) \
-    _(RESECT_TYPE_KIND_ULONG) \
-    _(RESECT_TYPE_KIND_ULONGLONG) \
-    _(RESECT_TYPE_KIND_UINT128) \
-    _(RESECT_TYPE_KIND_CHAR_S) \
-    _(RESECT_TYPE_KIND_SCHAR) \
-    _(RESECT_TYPE_KIND_WCHAR) \
-    _(RESECT_TYPE_KIND_SHORT) \
-    _(RESECT_TYPE_KIND_INT) \
-    _(RESECT_TYPE_KIND_LONG) \
-    _(RESECT_TYPE_KIND_LONGLONG) \
-    _(RESECT_TYPE_KIND_INT128) \
-    _(RESECT_TYPE_KIND_FLOAT) \
-    _(RESECT_TYPE_KIND_DOUBLE) \
-    _(RESECT_TYPE_KIND_LONGDOUBLE) \
-    _(RESECT_TYPE_KIND_NULLPTR) \
-    _(RESECT_TYPE_KIND_OVERLOAD) \
-    _(RESECT_TYPE_KIND_DEPENDENT) \
-    _(RESECT_TYPE_KIND_FLOAT128) \
-    _(RESECT_TYPE_KIND_HALF) \
-    _(RESECT_TYPE_KIND_FLOAT16) \
-    _(RESECT_TYPE_KIND_COMPLEX) \
-    _(RESECT_TYPE_KIND_POINTER) \
-    _(RESECT_TYPE_KIND_BLOCKPOINTER) \
-    _(RESECT_TYPE_KIND_LVALUEREFERENCE) \
-    _(RESECT_TYPE_KIND_RVALUEREFERENCE) \
-    _(RESECT_TYPE_KIND_RECORD) \
-    _(RESECT_TYPE_KIND_ENUM) \
-    _(RESECT_TYPE_KIND_TYPEDEF) \
-    _(RESECT_TYPE_KIND_FUNCTIONNOPROTO) \
-    _(RESECT_TYPE_KIND_FUNCTIONPROTO) \
-    _(RESECT_TYPE_KIND_CONSTANTARRAY) \
-    _(RESECT_TYPE_KIND_VECTOR) \
-    _(RESECT_TYPE_KIND_INCOMPLETEARRAY) \
-    _(RESECT_TYPE_KIND_VARIABLEARRAY) \
-    _(RESECT_TYPE_KIND_DEPENDENTSIZEDARRAY) \
-    _(RESECT_TYPE_KIND_MEMBERPOINTER) \
-    _(RESECT_TYPE_KIND_AUTO) \
-    _(RESECT_TYPE_KIND_ATOMIC) \
-    _(RESECT_TYPE_KIND_EXTVECTOR) \
-    _(RESECT_TYPE_KIND_TEMPLATE_PARAMETER) \
-    _(NUM_RESECT_TYPE_KIND_CODES)
+#define RESECT_TYPE_KIND_CODES(_) \
+    _(RESECT_TYPE_KIND_UNKNOWN, 0) \
+    _(RESECT_TYPE_KIND_VOID, 2) \
+    _(RESECT_TYPE_KIND_BOOL, 3) \
+    _(RESECT_TYPE_KIND_CHAR_U, 4) \
+    _(RESECT_TYPE_KIND_UCHAR, 5) \
+    _(RESECT_TYPE_KIND_CHAR16, 6) \
+    _(RESECT_TYPE_KIND_CHAR32, 7) \
+    _(RESECT_TYPE_KIND_USHORT, 8) \
+    _(RESECT_TYPE_KIND_UINT, 9) \
+    _(RESECT_TYPE_KIND_ULONG, 10) \
+    _(RESECT_TYPE_KIND_ULONGLONG, 11) \
+    _(RESECT_TYPE_KIND_UINT128, 12) \
+    _(RESECT_TYPE_KIND_CHAR_S, 13) \
+    _(RESECT_TYPE_KIND_SCHAR, 14) \
+    _(RESECT_TYPE_KIND_WCHAR, 15) \
+    _(RESECT_TYPE_KIND_SHORT, 16) \
+    _(RESECT_TYPE_KIND_INT, 17) \
+    _(RESECT_TYPE_KIND_LONG, 18) \
+    _(RESECT_TYPE_KIND_LONGLONG, 19) \
+    _(RESECT_TYPE_KIND_INT128, 20) \
+    _(RESECT_TYPE_KIND_FLOAT, 21) \
+    _(RESECT_TYPE_KIND_DOUBLE, 22) \
+    _(RESECT_TYPE_KIND_LONGDOUBLE, 23) \
+    _(RESECT_TYPE_KIND_NULLPTR, 24) \
+    _(RESECT_TYPE_KIND_OVERLOAD, 25) \
+    _(RESECT_TYPE_KIND_DEPENDENT, 26) \
+    _(RESECT_TYPE_KIND_FLOAT128, 30) \
+    _(RESECT_TYPE_KIND_HALF, 31) \
+    _(RESECT_TYPE_KIND_FLOAT16, 32) \
+    _(RESECT_TYPE_KIND_COMPLEX, 100) \
+    _(RESECT_TYPE_KIND_POINTER, 101) \
+    _(RESECT_TYPE_KIND_BLOCKPOINTER, 102) \
+    _(RESECT_TYPE_KIND_LVALUEREFERENCE, 103) \
+    _(RESECT_TYPE_KIND_RVALUEREFERENCE, 104) \
+    _(RESECT_TYPE_KIND_RECORD, 105) \
+    _(RESECT_TYPE_KIND_ENUM, 106) \
+    _(RESECT_TYPE_KIND_TYPEDEF, 107) \
+    _(RESECT_TYPE_KIND_FUNCTIONNOPROTO, 110) \
+    _(RESECT_TYPE_KIND_FUNCTIONPROTO, 111) \
+    _(RESECT_TYPE_KIND_CONSTANTARRAY, 112) \
+    _(RESECT_TYPE_KIND_VECTOR, 113) \
+    _(RESECT_TYPE_KIND_INCOMPLETEARRAY, 114) \
+    _(RESECT_TYPE_KIND_VARIABLEARRAY, 115) \
+    _(RESECT_TYPE_KIND_DEPENDENTSIZEDARRAY, 116) \
+    _(RESECT_TYPE_KIND_MEMBERPOINTER, 117) \
+    _(RESECT_TYPE_KIND_AUTO, 118) \
+    _(RESECT_TYPE_KIND_ATOMIC, 177) \
+    _(RESECT_TYPE_KIND_EXTVECTOR, 178) \
+    _(RESECT_TYPE_KIND_TEMPLATE_PARAMETER, 10000)
 
 /* Generate the resect_type_kind enum */
-typedef enum {
-    RESECT_TYPE_KIND_CODES(AS_BARE)
-} resect_type_kind;
+DEF_ENUM_ASSIGN_DECL(resect_type_kind, RESECT_TYPE_KIND_CODES)
+/* typedef enum { */
+/*     RESECT_TYPE_KIND_CODES(AS_BARE_ASSIGN) */
+/* } resect_type_kind; */
 
 typedef enum {
     RESECT_TYPE_CATEGORY_UNKNOWN = 0,
