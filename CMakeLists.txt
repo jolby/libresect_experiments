@@ -69,7 +69,8 @@ set_target_properties(resect PROPERTIES
 
 target_include_directories(resect
   SYSTEM BEFORE PUBLIC "${LIBCLANG_INCLUDE_DIRS}"
-  SYSTEM BEFORE PUBLIC "${CMAKE_BINARY_DIR}/third-party/pcre2-10.37/")
+  SYSTEM BEFORE PUBLIC "${CMAKE_BINARY_DIR}/third-party/pcre2-10.37/"
+)
 
 target_link_directories(resect
   PUBLIC "${LIBCLANG_LINK_DIRS}")
@@ -105,9 +106,23 @@ endif()
 target_link_libraries(resect
     resect_clang_static pcre2-8)
 
-add_executable(resect-test test/test.c)
-target_link_libraries(resect-test PUBLIC resect)
+# TESTS
+add_subdirectory("${THIRD_PARTY_DIR}/Unity/")
 
+# add_library(unity STATIC "${CMAKE_BINARY_DIR}/third-party/Unity/src/unity.c")
+# target_include_directories(unity "${CMAKE_BINARY_DIR}/third-party/Unity/src")
+
+add_executable(resect-test-enums test/test_enums.c)
+target_link_libraries(resect-test-enums PUBLIC resect unity)
+target_include_directories(resect-test-enums
+  # PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/test"
+  # SYSTEM BEFORE PUBLIC "${CMAKE_BINARY_DIR}/third-party/Unity/"
+  PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}"
+  PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/test"
+  unity PUBLIC src
+)
+
+# EXAMPLES AND COMMANDS
 add_executable(ast_pprint src/ast_pprint_cmd.c)
 target_link_libraries(ast_pprint PUBLIC resect)
 
