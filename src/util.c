@@ -174,68 +174,70 @@ resect_bool resect_string_equal(resect_string this, resect_string that) {
  * RETURN TYPE/ERROR CODES/MESSAGES
  */
 
-/* Generate the resect_error_code string table */
-static char *resect_error_strings[] = { RESECT_ERROR_CODES(AS_STR) };
+DEF_CONTIGUOUS_ENUM_IMPL(resect_error_code, RESECT_ERROR_CODES)
+DEF_CONTIGUOUS_ENUM_IMPL(resect_decl_kind, RESECT_DECL_KIND_CODES)
+DEF_CONTIGUOUS_ENUM_IMPL(resect_access_specifier, RESECT_ACCESS_SPECIFIER_CODES)
+DEF_NON_CONTIGUOUS_ENUM_IMPL(resect_type_kind, RESECT_TYPE_KIND_CODES)
+DEF_CONTIGUOUS_ENUM_IMPL(resect_type_category, RESECT_TYPE_CATEGORY_CODES)
+DEF_CONTIGUOUS_ENUM_IMPL(resect_function_calling_convention, RESECT_FUNCTION_CALLING_CONVENTION_CODES)
+DEF_CONTIGUOUS_ENUM_IMPL(resect_storage_class, RESECT_STORAGE_CLASS_CODES)
+DEF_CONTIGUOUS_ENUM_IMPL(resect_variable_kind, RESECT_VARIABLE_KIND_CODES)
+DEF_NON_CONTIGUOUS_ENUM_IMPL(resect_language, RESECT_LANGUAGE_CODES)
+DEF_CONTIGUOUS_ENUM_IMPL(resect_template_parameter_kind, RESECT_TEMPLATE_PARAMETER_KIND_CODES)
+DEF_CONTIGUOUS_ENUM_IMPL(resect_template_argument_kind, RESECT_TEMPLATE_ARGUMENT_KIND_CODES)
+DEF_CONTIGUOUS_ENUM_IMPL(resect_linkage_kind, RESECT_LINKAGE_KIND_CODES)
+DEF_CONTIGUOUS_ENUM_IMPL(resect_option_intrinsic, RESECT_OPTION_INTRINSICS_CODES)
+DEF_CONTIGUOUS_ENUM_IMPL(resect_inclusion_status, RESECT_INCLUSION_STATUS_CODES)
 
-static inline int is_resect_error_code_p(resect_error_code code) {
-    return code >= 0 && code < NUM_RESECT_ERROR_CODES;
-}
-const char* resect_error_to_c_string(resect_error_code code) {
-    return resect_error_strings[code];
-}
-
-resect_string resect_error_to_resect_string(resect_error_code code) {
-    return resect_string_from_c(resect_error_strings[code]);
-}
 
 /*
  * DECL KIND / ACCESS SPECIFIER / TYPE KIND enums and string tables
  */
 /* Generate the resect_decl_kind string table */
-static char *resect_decl_kind_string[] = { RESECT_DECL_KIND_CODES(AS_STR) };
+/* static char *resect_decl_kind_string[] = { RESECT_DECL_KIND_CODES(AS_STR) }; */
 
-/* Generate the resect_access_specifier string table */
-static char *resect_kind_access_specifier_string[] = { RESECT_ACCESS_SPECIFIER_CODES(AS_STR) };
+/* /\* Generate the resect_access_specifier string table *\/ */
+/* static char *resect_kind_access_specifier_string[] = { RESECT_ACCESS_SPECIFIER_CODES(AS_STR) }; */
 
-/* Generate the resect_type_kind string table */
-static char *resect_type_kind_string[] = { RESECT_TYPE_KIND_CODES(AS_STR) };
+/* /\* Generate the resect_type_kind string table *\/ */
+/* static char *resect_type_kind_string[] = { RESECT_TYPE_KIND_CODES(AS_STR) }; */
 
 
-/* predicates */
-static inline int is_resect_decl_kind_p(resect_decl_kind code) {
-    return code >= 0 && code < NUM_RESECT_DECL_KIND_CODES;
-}
-static inline int is_resect_access_specifier_p(resect_access_specifier code) {
-    return code >= 0 && code < NUM_RESECT_ACCESS_SPECIFIER_CODES;
-}
-static inline int is_resect_type_kind_p(resect_type_kind code) {
-    return code >= 0 && code < NUM_RESECT_TYPE_KIND_CODES;
-}
+/* /\* predicates *\/ */
+/* static inline int is_resect_decl_kind_p(resect_decl_kind code) { */
+/*     return code >= 0 && code < NUM_RESECT_DECL_KIND_CODES; */
+/* } */
+/* static inline int is_resect_access_specifier_p(resect_access_specifier code) { */
+/*     return code >= 0 && code < NUM_RESECT_ACCESS_SPECIFIER_CODES; */
+/* } */
+/* static inline int is_resect_type_kind_p(resect_type_kind code) { */
+/*     return code >= 0 && code < NUM_RESECT_TYPE_KIND_CODES; */
+/* } */
 
-/* to c string converters */
-const char* resect_decl_kind_to_c_string(resect_decl_kind code) {
-    if(!is_resect_decl_kind_p(code)) return "Invalid decl kind code";
-    return resect_decl_kind_string[code];
-}
-const char* resect_access_specifier_to_c_string(resect_access_specifier code) {
-    if(!is_resect_access_specifier_p(code)) return "Invalid access specifier code";
-    return resect_kind_access_specifier_string[code];
-}
-const char* resect_type_kind_to_c_string(resect_type_kind code) {
-    if(!is_resect_type_kind_p(code)) return "Invalid type kind code";
-    return resect_type_kind_string[code];
-}
+/* /\* to c string converters *\/ */
+/* const char* resect_decl_kind_to_c_string(resect_decl_kind code) { */
+/*     if(!is_resect_decl_kind_p(code)) return "Invalid decl kind code"; */
+/*     return resect_decl_kind_string[code]; */
+/* } */
+/* const char* resect_access_specifier_to_c_string(resect_access_specifier code) { */
+/*     if(!is_resect_access_specifier_p(code)) return "Invalid access specifier code"; */
+/*     return resect_kind_access_specifier_string[code]; */
+/* } */
+/* const char* resect_type_kind_to_c_string(resect_type_kind code) { */
+/*     if(!is_resect_type_kind_p(code)) return "Invalid type kind code"; */
+/*     return resect_type_kind_string[code]; */
+/* } */
 
-/* to resect string converters */
-resect_string resect_decl_kind_to_resect_string(resect_decl_kind code) {
-    return resect_string_from_c(resect_decl_kind_to_c_string(code));
-}
-resect_string resect_access_specifier_to_resect_string(resect_access_specifier code) {
-    return resect_string_from_c(resect_access_specifier_to_c_string(code));
-}
-resect_string resect_type_kind_to_resect_string(resect_type_kind code) {
-    return resect_string_from_c(resect_type_kind_to_c_string(code));
-}
+/* /\* to resect string converters *\/ */
+/* resect_string resect_decl_kind_to_resect_string(resect_decl_kind code) { */
+/*     return resect_string_from_c(resect_decl_kind_to_c_string(code)); */
+/* } */
+/* resect_string resect_access_specifier_to_resect_string(resect_access_specifier code) { */
+/*     return resect_string_from_c(resect_access_specifier_to_c_string(code)); */
+/* } */
+/* resect_string resect_type_kind_to_resect_string(resect_type_kind code) { */
+/*     return resect_string_from_c(resect_type_kind_to_c_string(code)); */
+/* } */
 
 
 resect_error resect_create_error(resect_error_code code,
