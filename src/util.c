@@ -171,8 +171,53 @@ resect_bool resect_string_equal(resect_string this, resect_string that) {
 }
 
 /*
- * RETURN TYPE/ERROR CODES/MESSAGES
+ * ENUM HELPER DEFINITION IMPLS
  */
+#define DEF_CONTIGUOUS_ENUM_IMPL(NAME, ENUMS)             \
+    static const enum_val_string_map NAME ## _mapping[] = { ENUMS(SINGLE_AS_PAIR) }; \
+    static inline resect_bool is_ ## NAME ## _p(NAME val) { \
+        if (val >= 0 && val < (sizeof(NAME ## _mapping)/sizeof(enum_val_string_map))) return resect_true; \
+        return resect_false; \
+    } \
+    static inline const char* NAME ## _to_string(NAME val) { \
+        if (is_ ## NAME ## _p(val)) { \
+            return NAME ## _mapping[val].name; \
+        } \
+        return "Unknown"; \
+    } \
+    static inline resect_string NAME ## _to_resect_string(NAME val) { \
+        return resect_string_from_c(NAME ## _to_string(val)); \
+    } \
+    static inline int string_to_ ## NAME(const char* str) { \
+        for (size_t i = 0; i < (sizeof(NAME ## _mapping)/sizeof(enum_val_string_map)); ++i) { \
+            if (strcmp(NAME ## _mapping[i].name, str) == 0) return NAME ## _mapping[i].code; \
+        } \
+        return INVALID_ENUM_LOOKUP_KEY; \
+    }
+
+#define DEF_NON_CONTIGUOUS_ENUM_IMPL(NAME, ENUMS)             \
+    static const enum_val_string_map NAME ## _mapping[] = { ENUMS(AS_PAIR) }; \
+    static inline resect_bool is_ ## NAME ## _p(NAME val) { \
+        for (size_t i = 0; i < (sizeof(NAME ## _mapping)/sizeof(enum_val_string_map)); ++i) { \
+            if (NAME ## _mapping[i].code == (int) val) return resect_true; \
+        } \
+        return resect_false; \
+    } \
+    static inline const char* NAME ## _to_string(NAME val) { \
+        for (size_t i = 0; i < (sizeof(NAME ## _mapping)/sizeof(enum_val_string_map)); ++i) { \
+            if (NAME ## _mapping[i].code == (int) val) return NAME ## _mapping[i].name; \
+        } \
+        return "Unknown"; \
+    } \
+    static inline resect_string NAME ## _to_resect_string(NAME val) { \
+        return resect_string_from_c(NAME ## _to_string(val)); \
+    } \
+    static inline int string_to_ ## NAME(const char* str) { \
+        for (size_t i = 0; i < (sizeof(NAME ## _mapping)/sizeof(enum_val_string_map)); ++i) { \
+            if (strcmp(NAME ## _mapping[i].name, str) == 0) return NAME ## _mapping[i].code; \
+        } \
+        return INVALID_ENUM_LOOKUP_KEY; \
+    }
 
 DEF_CONTIGUOUS_ENUM_IMPL(resect_error_code, RESECT_ERROR_CODES)
 DEF_CONTIGUOUS_ENUM_IMPL(resect_decl_kind, RESECT_DECL_KIND_CODES)
@@ -189,67 +234,16 @@ DEF_CONTIGUOUS_ENUM_IMPL(resect_linkage_kind, RESECT_LINKAGE_KIND_CODES)
 DEF_CONTIGUOUS_ENUM_IMPL(resect_option_intrinsic, RESECT_OPTION_INTRINSICS_CODES)
 DEF_CONTIGUOUS_ENUM_IMPL(resect_inclusion_status, RESECT_INCLUSION_STATUS_CODES)
 
-
-/*
- * DECL KIND / ACCESS SPECIFIER / TYPE KIND enums and string tables
- */
-/* Generate the resect_decl_kind string table */
-/* static char *resect_decl_kind_string[] = { RESECT_DECL_KIND_CODES(AS_STR) }; */
-
-/* /\* Generate the resect_access_specifier string table *\/ */
-/* static char *resect_kind_access_specifier_string[] = { RESECT_ACCESS_SPECIFIER_CODES(AS_STR) }; */
-
-/* /\* Generate the resect_type_kind string table *\/ */
-/* static char *resect_type_kind_string[] = { RESECT_TYPE_KIND_CODES(AS_STR) }; */
-
-
-/* /\* predicates *\/ */
-/* static inline int is_resect_decl_kind_p(resect_decl_kind code) { */
-/*     return code >= 0 && code < NUM_RESECT_DECL_KIND_CODES; */
-/* } */
-/* static inline int is_resect_access_specifier_p(resect_access_specifier code) { */
-/*     return code >= 0 && code < NUM_RESECT_ACCESS_SPECIFIER_CODES; */
-/* } */
-/* static inline int is_resect_type_kind_p(resect_type_kind code) { */
-/*     return code >= 0 && code < NUM_RESECT_TYPE_KIND_CODES; */
-/* } */
-
-/* /\* to c string converters *\/ */
-/* const char* resect_decl_kind_to_c_string(resect_decl_kind code) { */
-/*     if(!is_resect_decl_kind_p(code)) return "Invalid decl kind code"; */
-/*     return resect_decl_kind_string[code]; */
-/* } */
-/* const char* resect_access_specifier_to_c_string(resect_access_specifier code) { */
-/*     if(!is_resect_access_specifier_p(code)) return "Invalid access specifier code"; */
-/*     return resect_kind_access_specifier_string[code]; */
-/* } */
-/* const char* resect_type_kind_to_c_string(resect_type_kind code) { */
-/*     if(!is_resect_type_kind_p(code)) return "Invalid type kind code"; */
-/*     return resect_type_kind_string[code]; */
-/* } */
-
-/* /\* to resect string converters *\/ */
-/* resect_string resect_decl_kind_to_resect_string(resect_decl_kind code) { */
-/*     return resect_string_from_c(resect_decl_kind_to_c_string(code)); */
-/* } */
-/* resect_string resect_access_specifier_to_resect_string(resect_access_specifier code) { */
-/*     return resect_string_from_c(resect_access_specifier_to_c_string(code)); */
-/* } */
-/* resect_string resect_type_kind_to_resect_string(resect_type_kind code) { */
-/*     return resect_string_from_c(resect_type_kind_to_c_string(code)); */
-/* } */
-
-
 resect_error resect_create_error(resect_error_code code,
                                  const char *message,
                                  void *extra_data) {
     resect_error error = malloc(sizeof(struct P_resect_error));
     error->code = code;
     if(NULL == message)
-        error->message = resect_string_from_c(resect_error_strings[code]);
+        error->message = resect_string_from_c(resect_error_code_to_string(code));
     else
         error->message = resect_string_from_c(message);
-    error->message = resect_string_from_c(resect_error_strings[code]);
+    error->message = resect_string_from_c(resect_error_code_to_string(code));
     error->extra_data = extra_data;
     return error;
 }
@@ -263,7 +257,6 @@ resect_error_code resect_free_error(resect_error error) {
     free(error);
     return code;
 }
-
 
 
 /*

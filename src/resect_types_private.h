@@ -20,7 +20,6 @@
 /*
  * STRING
  */
-typedef struct P_resect_string *resect_string;
 
 struct P_resect_string {
     char *value;

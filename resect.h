@@ -21,6 +21,8 @@ extern "C" {
 
 typedef int resect_bool;
 
+typedef struct P_resect_string *resect_string;
+
 typedef struct {
     int code;
     const char *name;
@@ -44,6 +46,7 @@ typedef struct {
     typedef enum { ENUMS(AS_BARE) } NAME; \
     static inline resect_bool is_ ## NAME ## _p(NAME val); \
     static inline const char* NAME ## _to_string(NAME val); \
+    static inline resect_string NAME ## _to_resect_string(NAME val); \
     static inline int string_to_ ## NAME(const char* str);
 
 /* For non-contiguous enums */
@@ -51,48 +54,9 @@ typedef struct {
     typedef enum { ENUMS(AS_BARE_ASSIGN) } NAME; \
     static inline resect_bool is_ ## NAME ## _p(NAME val); \
     static inline const char* NAME ## _to_string(NAME val); \
+    static inline resect_string NAME ## _to_resect_string(NAME val); \
     static inline int string_to_ ## NAME(const char* str);
 
-/* TODO break out contiguous/non-contiguous to get O(1) lookups for contiguous enums */
-#define DEF_CONTIGUOUS_ENUM_IMPL(NAME, ENUMS)             \
-    static const enum_val_string_map NAME ## _mapping[] = { ENUMS(SINGLE_AS_PAIR) }; \
-    static inline resect_bool is_ ## NAME ## _p(NAME val) { \
-        if (val >= 0 && val < (sizeof(NAME ## _mapping)/sizeof(enum_val_string_map))) return resect_true; \
-        return resect_false; \
-    } \
-    static inline const char* NAME ## _to_string(NAME val) { \
-        if (is_ ## NAME ## _p(val)) { \
-            return NAME ## _mapping[val].name; \
-        } \
-        return "Unknown"; \
-    } \
-    static inline int string_to_ ## NAME(const char* str) { \
-        for (size_t i = 0; i < (sizeof(NAME ## _mapping)/sizeof(enum_val_string_map)); ++i) { \
-            if (strcmp(NAME ## _mapping[i].name, str) == 0) return NAME ## _mapping[i].code; \
-        } \
-        return INVALID_ENUM_LOOKUP_KEY; \
-    }
-
-#define DEF_NON_CONTIGUOUS_ENUM_IMPL(NAME, ENUMS)             \
-    static const enum_val_string_map NAME ## _mapping[] = { ENUMS(AS_PAIR) }; \
-    static inline resect_bool is_ ## NAME ## _p(NAME val) { \
-        for (size_t i = 0; i < (sizeof(NAME ## _mapping)/sizeof(enum_val_string_map)); ++i) { \
-            if (NAME ## _mapping[i].code == (int) val) return resect_true; \
-        } \
-        return resect_false; \
-    } \
-    static inline const char* NAME ## _to_string(NAME val) { \
-        for (size_t i = 0; i < (sizeof(NAME ## _mapping)/sizeof(enum_val_string_map)); ++i) { \
-            if (NAME ## _mapping[i].code == (int) val) return NAME ## _mapping[i].name; \
-        } \
-        return "Unknown"; \
-    } \
-    static inline int string_to_ ## NAME(const char* str) { \
-        for (size_t i = 0; i < (sizeof(NAME ## _mapping)/sizeof(enum_val_string_map)); ++i) { \
-            if (strcmp(NAME ## _mapping[i].name, str) == 0) return NAME ## _mapping[i].code; \
-        } \
-        return INVALID_ENUM_LOOKUP_KEY; \
-    }
 
 #define RESECT_ERROR_CODES(_) \
     _(RESECT_OK) \
@@ -117,9 +81,6 @@ typedef struct {
 /* Generate the enum+helper declarations */
 DEF_ENUM_DECL(resect_error_code, RESECT_ERROR_CODES)
 
-/* typedef enum { */
-/*     RESECT_ERROR_CODES(AS_BARE) */
-/* } resect_error_code; */
 
 /* x-macro constructors for decl_kind enum and string table */
 #define RESECT_DECL_KIND_CODES(_) \
@@ -141,9 +102,6 @@ DEF_ENUM_DECL(resect_error_code, RESECT_ERROR_CODES)
 
 /* Generate the resect_decl_kind enum+helpers */
 DEF_ENUM_DECL(resect_decl_kind, RESECT_DECL_KIND_CODES)
-/* typedef enum { */
-/*     RESECT_DECL_KIND_CODES(AS_BARE) */
-/* } resect_decl_kind; */
 
 /* x-macro constructors for access_specifier enum and string table */
 #define RESECT_ACCESS_SPECIFIER_CODES(_) \
@@ -154,9 +112,7 @@ DEF_ENUM_DECL(resect_decl_kind, RESECT_DECL_KIND_CODES)
 
 /* Generate the resect_access_specifier enum+helpers */
 DEF_ENUM_DECL(resect_access_specifier, RESECT_ACCESS_SPECIFIER_CODES)
-/* typedef enum { */
-/*     RESECT_ACCESS_SPECIFIER_CODES(AS_BARE) */
-/* } resect_access_specifier; */
+
 
 #define RESECT_TYPE_KIND_CODES(_) \
     _(RESECT_TYPE_KIND_UNKNOWN, 0) \
@@ -211,9 +167,7 @@ DEF_ENUM_DECL(resect_access_specifier, RESECT_ACCESS_SPECIFIER_CODES)
 
 /* Generate the resect_type_kind enum */
 DEF_ENUM_ASSIGN_DECL(resect_type_kind, RESECT_TYPE_KIND_CODES)
-/* typedef enum { */
-/*     RESECT_TYPE_KIND_CODES(AS_BARE_ASSIGN) */
-/* } resect_type_kind; */
+
 
 #define RESECT_TYPE_CATEGORY_CODES(_) \
     _(RESECT_TYPE_CATEGORY_UNKNOWN) \
@@ -226,17 +180,6 @@ DEF_ENUM_ASSIGN_DECL(resect_type_kind, RESECT_TYPE_KIND_CODES)
 
 /* Generate the resect_type_category enum */
 DEF_ENUM_DECL(resect_type_category, RESECT_TYPE_CATEGORY_CODES)
-
-
-/* typedef enum { */
-/*     RESECT_TYPE_CATEGORY_UNKNOWN = 0, */
-/*     RESECT_TYPE_CATEGORY_ARITHMETIC = 1, */
-/*     RESECT_TYPE_CATEGORY_POINTER = 2, */
-/*     RESECT_TYPE_CATEGORY_REFERENCE = 3, */
-/*     RESECT_TYPE_CATEGORY_ARRAY = 4, */
-/*     RESECT_TYPE_CATEGORY_UNIQUE = 5, */
-/*     RESECT_TYPE_CATEGORY_AUX = 6 */
-/* } resect_type_category; */
 
 
 #define RESECT_FUNCTION_CALLING_CONVENTION_CODES(_) \
@@ -262,26 +205,6 @@ DEF_ENUM_DECL(resect_type_category, RESECT_TYPE_CATEGORY_CODES)
 /* Generate the resect_function_calling_convention enum */
 DEF_ENUM_DECL(resect_function_calling_convention, RESECT_FUNCTION_CALLING_CONVENTION_CODES)
 
-/* typedef enum { */
-/*     RESECT_FUNCTION_CALLING_CONVENTION_UNKNOWN = 0, */
-/*     RESECT_FUNCTION_CALLING_CONVENTION_DEFAULT = 1, */
-/*     RESECT_FUNCTION_CALLING_CONVENTION_C = 2, */
-/*     RESECT_FUNCTION_CALLING_CONVENTION_X86_STDCALL = 3, */
-/*     RESECT_FUNCTION_CALLING_CONVENTION_X86_FASTCALL = 4, */
-/*     RESECT_FUNCTION_CALLING_CONVENTION_X86_THISCALL = 5, */
-/*     RESECT_FUNCTION_CALLING_CONVENTION_X86_REGCALL = 6, */
-/*     RESECT_FUNCTION_CALLING_CONVENTION_X86_VECTORCALL = 7, */
-/*     RESECT_FUNCTION_CALLING_CONVENTION_X86_PASCAL = 8, */
-/*     RESECT_FUNCTION_CALLING_CONVENTION_X86_64_WIN64 = 9, */
-/*     RESECT_FUNCTION_CALLING_CONVENTION_X86_64_SYSV = 10, */
-/*     RESECT_FUNCTION_CALLING_CONVENTION_AARCH64_VECTORCALL = 11, */
-/*     RESECT_FUNCTION_CALLING_CONVENTION_AAPCS = 12, */
-/*     RESECT_FUNCTION_CALLING_CONVENTION_AAPCS_VFP = 13, */
-/*     RESECT_FUNCTION_CALLING_CONVENTION_INTEL_OCL_BICC = 14, */
-/*     RESECT_FUNCTION_CALLING_CONVENTION_SWIFT = 15, */
-/*     RESECT_FUNCTION_CALLING_CONVENTION_PRESERVE_MOST = 16, */
-/*     RESECT_FUNCTION_CALLING_CONVENTION_PRESERVE_ALL = 17, */
-/* } resect_function_calling_convention; */
 
 #define RESECT_STORAGE_CLASS_CODES(_) \
     _(RESECT_STORAGE_CLASS_UNKNOWN) \
@@ -296,16 +219,6 @@ DEF_ENUM_DECL(resect_function_calling_convention, RESECT_FUNCTION_CALLING_CONVEN
 /* Generate the resect_storage_class enum */
 DEF_ENUM_DECL(resect_storage_class, RESECT_STORAGE_CLASS_CODES)
 
-/* typedef enum { */
-/*     RESECT_STORAGE_CLASS_UNKNOWN = 0, */
-/*     RESECT_STORAGE_CLASS_NONE = 1, */
-/*     RESECT_STORAGE_CLASS_EXTERN = 2, */
-/*     RESECT_STORAGE_CLASS_STATIC = 3, */
-/*     RESECT_STORAGE_CLASS_PRIVATE_EXTERN = 4, */
-/*     RESECT_STORAGE_CLASS_OPENCL_WORKGROUP_LOCAL = 5, */
-/*     RESECT_STORAGE_CLASS_AUTO = 6, */
-/*     RESECT_STORAGE_CLASS_REGISTER = 7, */
-/* } resect_storage_class; */
 
 #define RESECT_VARIABLE_KIND_CODES(_) \
     _(RESECT_VARIABLE_TYPE_UNKNOWN) \
@@ -317,13 +230,6 @@ DEF_ENUM_DECL(resect_storage_class, RESECT_STORAGE_CLASS_CODES)
 /* Generate the resect_variable_kind enum */
 DEF_ENUM_DECL(resect_variable_kind, RESECT_VARIABLE_KIND_CODES)
 
-/* typedef enum { */
-/*     RESECT_VARIABLE_TYPE_UNKNOWN = 0, */
-/*     RESECT_VARIABLE_TYPE_INT, */
-/*     RESECT_VARIABLE_TYPE_FLOAT, */
-/*     RESECT_VARIABLE_TYPE_STRING, */
-/*     RESECT_VARIABLE_TYPE_OTHER, */
-/* } resect_variable_kind; */
 
 #define RESECT_LANGUAGE_CODES(_) \
     _(RESECT_LANGUAGE_UNKNOWN, 0) \
@@ -335,14 +241,6 @@ DEF_ENUM_DECL(resect_variable_kind, RESECT_VARIABLE_KIND_CODES)
 /* Generate the resect_language enum */
 DEF_ENUM_ASSIGN_DECL(resect_language, RESECT_LANGUAGE_CODES)
 
-/* typedef enum { */
-/*     RESECT_LANGUAGE_UNKNOWN = 0, */
-/*     RESECT_LANGUAGE_C, */
-/*     RESECT_LANGUAGE_CXX, */
-/*     RESECT_LANGUAGE_OBJC, */
-
-/*     RESECT_LANGUAGE__LAST = RESECT_LANGUAGE_OBJC, */
-/* } resect_language; */
 
 #define RESECT_TEMPLATE_PARAMETER_KIND_CODES(_) \
     _(RESECT_TEMPLATE_PARAMETER_KIND_UNKNOWN) \
@@ -353,14 +251,8 @@ DEF_ENUM_ASSIGN_DECL(resect_language, RESECT_LANGUAGE_CODES)
 /* Generate the resect_template_parameter_kind enum */
 DEF_ENUM_DECL(resect_template_parameter_kind, RESECT_TEMPLATE_PARAMETER_KIND_CODES)
 
-/* typedef enum { */
-/*     RESECT_TEMPLATE_PARAMETER_KIND_UNKNOWN = 0, */
-/*     RESECT_TEMPLATE_PARAMETER_KIND_TEMPLATE, */
-/*     RESECT_TEMPLATE_PARAMETER_KIND_TYPE, */
-/*     RESECT_TEMPLATE_PARAMETER_KIND_NON_TYPE, */
-/* } resect_template_parameter_kind; */
 
-#define RESECT_TEMPLATE_ARGUMENT_KIND_CODES(_) \
+#define RESECT_TEMPLATE_ARGUMENT_KIND_CODES(_)  \
     _(RESECT_TEMPLATE_ARGUMENT_KIND_UNKNOWN) \
     _(RESECT_TEMPLATE_ARGUMENT_KIND_NULL) \
     _(RESECT_TEMPLATE_ARGUMENT_KIND_TYPE) \
@@ -375,18 +267,6 @@ DEF_ENUM_DECL(resect_template_parameter_kind, RESECT_TEMPLATE_PARAMETER_KIND_COD
 /* Generate the resect_template_argument_kind enum */
 DEF_ENUM_DECL(resect_template_argument_kind, RESECT_TEMPLATE_ARGUMENT_KIND_CODES)
 
-/* typedef enum { */
-/*     RESECT_TEMPLATE_ARGUMENT_KIND_UNKNOWN = 0, */
-/*     RESECT_TEMPLATE_ARGUMENT_KIND_NULL, */
-/*     RESECT_TEMPLATE_ARGUMENT_KIND_TYPE, */
-/*     RESECT_TEMPLATE_ARGUMENT_KIND_DECLARATION, */
-/*     RESECT_TEMPLATE_ARGUMENT_KIND_NULL_PTR, */
-/*     RESECT_TEMPLATE_ARGUMENT_KIND_INTEGRAL, */
-/*     RESECT_TEMPLATE_ARGUMENT_KIND_TEMPLATE, */
-/*     RESECT_TEMPLATE_ARGUMENT_KIND_TEMPLATE_EXPANSION, */
-/*     RESECT_TEMPLATE_ARGUMENT_KIND_EXPRESSION, */
-/*     RESECT_TEMPLATE_ARGUMENT_KIND_PACK */
-/* } resect_template_argument_kind; */
 
 #define RESECT_LINKAGE_KIND_CODES(_) \
     _(RESECT_LINKAGE_KIND_UNKNOWN) \
@@ -398,13 +278,6 @@ DEF_ENUM_DECL(resect_template_argument_kind, RESECT_TEMPLATE_ARGUMENT_KIND_CODES
 /* Generate the resect_linkage_kind enum */
 DEF_ENUM_DECL(resect_linkage_kind, RESECT_LINKAGE_KIND_CODES)
 
-/* typedef enum { */
-/*     RESECT_LINKAGE_KIND_UNKNOWN = 0, */
-/*     RESECT_LINKAGE_KIND_NO_LINKAGE = 1, */
-/*     RESECT_LINKAGE_KIND_INTERNAL = 2, */
-/*     RESECT_LINKAGE_KIND_UNIQUE_EXTERNAL = 3, */
-/*     RESECT_LINKAGE_KIND_EXTERNAL = 4 */
-/* } resect_linkage_kind; */
 
 #define RESECT_OPTION_INTRINSICS_CODES(_) \
     _(RESECT_OPTION_INTRINSICS_UNKNOWN) \
@@ -420,17 +293,6 @@ DEF_ENUM_DECL(resect_linkage_kind, RESECT_LINKAGE_KIND_CODES)
 /* Generate the resect_option_intrinsic enum */
 DEF_ENUM_DECL(resect_option_intrinsic, RESECT_OPTION_INTRINSICS_CODES)
 
-/* typedef enum { */
-/*     RESECT_OPTION_INTRINSICS_UNKNOWN = 0, */
-/*     RESECT_OPTION_INTRINSICS_SSE = 1, */
-/*     RESECT_OPTION_INTRINSICS_SSE2 = 2, */
-/*     RESECT_OPTION_INTRINSICS_SSE3 = 3, */
-/*     RESECT_OPTION_INTRINSICS_SSE41 = 4, */
-/*     RESECT_OPTION_INTRINSICS_SSE42 = 5, */
-/*     RESECT_OPTION_INTRINSICS_AVX = 6, */
-/*     RESECT_OPTION_INTRINSICS_AVX2 = 7, */
-/*     RESECT_OPTION_INTRINSICS_NEON = 8, */
-/* } resect_option_intrinsic; */
 
 #define RESECT_INCLUSION_STATUS_CODES(_) \
     _(RESECT_INCLUSION_STATUS_EXCLUDED) \
@@ -442,13 +304,6 @@ DEF_ENUM_DECL(resect_option_intrinsic, RESECT_OPTION_INTRINSICS_CODES)
 /* Generate the resect_inclusion_status enum */
 DEF_ENUM_DECL(resect_inclusion_status, RESECT_INCLUSION_STATUS_CODES)
 
-/* typedef enum { */
-/*     RESECT_INCLUSION_STATUS_EXCLUDED = 0, */
-/*     RESECT_INCLUSION_STATUS_WEAKLY_EXCLUDED = 1, */
-/*     RESECT_INCLUSION_STATUS_WEAKLY_INCLUDED = 2, */
-/*     RESECT_INCLUSION_STATUS_WEAKLY_ENFORCED = 3, */
-/*     RESECT_INCLUSION_STATUS_INCLUDED = 4 */
-/* } resect_inclusion_status; */
 
 /*
  * RESECT TYPES
