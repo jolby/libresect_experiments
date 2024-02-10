@@ -175,49 +175,87 @@ resect_bool resect_string_equal(resect_string this, resect_string that) {
  */
 #define DEF_CONTIGUOUS_ENUM_IMPL(NAME, ENUMS)             \
     static const enum_val_string_map NAME ## _mapping[] = { ENUMS(SINGLE_AS_PAIR) }; \
-    static inline resect_bool is_ ## NAME ## _p(NAME val) { \
-        if (val >= 0 && val < (sizeof(NAME ## _mapping)/sizeof(enum_val_string_map))) return resect_true; \
+    extern inline size_t NAME ## _count() { \
+        return (size_t) 0 ENUMS(SINGLE_COUNT_ENUM); \
+    } \
+    extern inline int NAME ## _min() {     \
+        return NAME ## _mapping[0].code; \
+    } \
+    extern inline int NAME ## _max() {     \
+        return NAME ## _mapping[NAME ## _count() - 1].code; \
+    } \
+    extern inline resect_bool is_ ## NAME ## _p(NAME val) { \
+        if (val >= 0 && val < NAME ## _count()) return resect_true; \
         return resect_false; \
     } \
-    static inline const char* NAME ## _to_string(NAME val) { \
+    extern inline const char* NAME ## _to_string(NAME val) { \
         if (is_ ## NAME ## _p(val)) { \
             return NAME ## _mapping[val].name; \
         } \
         return "Unknown"; \
     } \
-    static inline resect_string NAME ## _to_resect_string(NAME val) { \
+    extern inline resect_string NAME ## _to_resect_string(NAME val) { \
         return resect_string_from_c(NAME ## _to_string(val)); \
     } \
-    static inline int string_to_ ## NAME(const char* str) { \
-        for (size_t i = 0; i < (sizeof(NAME ## _mapping)/sizeof(enum_val_string_map)); ++i) { \
+    extern inline int string_to_ ## NAME(const char* str) { \
+        for (size_t i = 0; i < NAME ## _count(); ++i) { \
             if (strcmp(NAME ## _mapping[i].name, str) == 0) return NAME ## _mapping[i].code; \
         } \
         return INVALID_ENUM_LOOKUP_KEY; \
+    } \
+    extern void NAME ## _dump() {                                        \
+        for (size_t i = 0; i < NAME ## _count(); ++i) { \
+            printf("%s = %d\n", NAME ## _mapping[i].name, NAME ## _mapping[i].code); \
+        } \
     }
+
 
 #define DEF_NON_CONTIGUOUS_ENUM_IMPL(NAME, ENUMS)             \
     static const enum_val_string_map NAME ## _mapping[] = { ENUMS(AS_PAIR) }; \
-    static inline resect_bool is_ ## NAME ## _p(NAME val) { \
-        for (size_t i = 0; i < (sizeof(NAME ## _mapping)/sizeof(enum_val_string_map)); ++i) { \
+    inline size_t NAME ## _count() { \
+        return (size_t) 0 ENUMS(COUNT_ENUM); \
+    } \
+    inline int NAME ## _min() { \
+        int min = NAME ## _mapping[0].code; \
+        for (size_t i = 1; i < NAME ## _count(); ++i) { \
+            if (NAME ## _mapping[i].code < min) min = NAME ## _mapping[i].code; \
+        } \
+        return min; \
+    } \
+    inline int NAME ## _max() { \
+        int max = NAME ## _mapping[0].code; \
+        for (size_t i = 1; i < NAME ## _count(); ++i) { \
+            if (NAME ## _mapping[i].code > max) max = NAME ## _mapping[i].code; \
+        } \
+        return max; \
+    } \
+    inline resect_bool is_ ## NAME ## _p(NAME val) { \
+        for (size_t i = 0; i < NAME ## _count(); ++i) { \
             if (NAME ## _mapping[i].code == (int) val) return resect_true; \
         } \
         return resect_false; \
     } \
-    static inline const char* NAME ## _to_string(NAME val) { \
-        for (size_t i = 0; i < (sizeof(NAME ## _mapping)/sizeof(enum_val_string_map)); ++i) { \
+    inline const char* NAME ## _to_string(NAME val) { \
+        for (size_t i = 0; i < NAME ## _count(); ++i) { \
             if (NAME ## _mapping[i].code == (int) val) return NAME ## _mapping[i].name; \
         } \
         return "Unknown"; \
     } \
-    static inline resect_string NAME ## _to_resect_string(NAME val) { \
+    inline resect_string NAME ## _to_resect_string(NAME val) { \
         return resect_string_from_c(NAME ## _to_string(val)); \
     } \
-    static inline int string_to_ ## NAME(const char* str) { \
-        for (size_t i = 0; i < (sizeof(NAME ## _mapping)/sizeof(enum_val_string_map)); ++i) { \
+    inline int string_to_ ## NAME(const char* str) { \
+        for (size_t i = 0; i < NAME ## _count(); ++i) { \
             if (strcmp(NAME ## _mapping[i].name, str) == 0) return NAME ## _mapping[i].code; \
         } \
         return INVALID_ENUM_LOOKUP_KEY; \
+    } \
+    extern void NAME ## _dump() {                                        \
+        for (size_t i = 0; i < NAME ## _count(); ++i) {                 \
+            printf("%s = %d\n", NAME ## _mapping[i].name, NAME ## _mapping[i].code); \
+        }                                                               \
     }
+
 
 DEF_CONTIGUOUS_ENUM_IMPL(resect_error_code, RESECT_ERROR_CODES)
 DEF_CONTIGUOUS_ENUM_IMPL(resect_decl_kind, RESECT_DECL_KIND_CODES)

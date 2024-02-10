@@ -6,11 +6,11 @@
 #include <stdlib.h>
 #include <getopt.h>
 #include <stdbool.h>
-#include "../resect.h"
 #include <clang-c/Index.h>
-
+#include <pcre2.h>
 #include "uthash.h"
 
+#include "../resect.h"
 /*
  * =================================================================================================
  * RESECT INTERNAL TYPES
@@ -136,6 +136,16 @@ struct P_resect_filtering_context {
     resect_collection status_stack;
 };
 
+typedef resect_inclusion_status (*resect_filtering_rule_fn)(resect_filtering_context context,
+                                                         const char *name,
+                                                         const char *source);
+
+typedef struct P_resect_regex_filter_rule *resect_filter_rule;
+
+struct P_resect_regex_filter_rule {
+    pcre2_code *pattern;
+    resect_filtering_rule_fn rule;
+};
 
 /*
  * TRANSLATION CONTEXT

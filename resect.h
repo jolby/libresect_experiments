@@ -1,6 +1,8 @@
 #ifndef RESECT_H
 #define RESECT_H
 
+#include <stdlib.h>
+
 #if defined(_WIN32)
 #  if !defined(RESECT_API_NOEXPORT)
 #    define RESECT_API __declspec(dllexport)
@@ -36,6 +38,8 @@ typedef struct {
 #define AS_STR(a) #a ,
 #define SINGLE_AS_PAIR(a) {a, #a},
 #define AS_PAIR(a, b) {b, #a},
+#define SINGLE_COUNT_ENUM(a) + 1
+#define COUNT_ENUM(a, b) + 1
 
 #define INVALID_ENUM_VALUE -255
 #define INVALID_ENUM_LOOKUP_KEY -254
@@ -44,18 +48,26 @@ typedef struct {
 /* For simple contiguous enums */
 #define DEF_ENUM_DECL(NAME, ENUMS)             \
     typedef enum { ENUMS(AS_BARE) } NAME; \
-    static inline resect_bool is_ ## NAME ## _p(NAME val); \
-    static inline const char* NAME ## _to_string(NAME val); \
-    static inline resect_string NAME ## _to_resect_string(NAME val); \
-    static inline int string_to_ ## NAME(const char* str);
+    extern size_t NAME ## _count(); \
+    extern int NAME ## _min(); \
+    extern int NAME ## _max(); \
+    extern resect_bool is_ ## NAME ## _p(NAME val); \
+    extern const char* NAME ## _to_string(NAME val); \
+    extern resect_string NAME ## _to_resect_string(NAME val); \
+    extern int string_to_ ## NAME(const char* str); \
+    extern void NAME ## _dump();
 
 /* For non-contiguous enums */
 #define DEF_ENUM_ASSIGN_DECL(NAME, ENUMS)             \
     typedef enum { ENUMS(AS_BARE_ASSIGN) } NAME; \
-    static inline resect_bool is_ ## NAME ## _p(NAME val); \
-    static inline const char* NAME ## _to_string(NAME val); \
-    static inline resect_string NAME ## _to_resect_string(NAME val); \
-    static inline int string_to_ ## NAME(const char* str);
+    extern size_t NAME ## _count(); \
+    extern int NAME ## _min(); \
+    extern int NAME ## _max(); \
+    extern resect_bool is_ ## NAME ## _p(NAME val); \
+    extern const char* NAME ## _to_string(NAME val); \
+    extern resect_string NAME ## _to_resect_string(NAME val); \
+    extern int string_to_ ## NAME(const char* str); \
+    extern void NAME ## _dump;
 
 
 #define RESECT_ERROR_CODES(_) \
